@@ -1,0 +1,13 @@
+{
+  "name": "neo4j-data-generation",
+  "version": "1.0.0",
+  "description": "Data generator for neo4j",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "csv-writer": "^1.6.0",
+    "js-yaml": "^3.13.1"
+  }
+}
