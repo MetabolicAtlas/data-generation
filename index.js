@@ -1,6 +1,6 @@
 
 const fs = require('fs'), path = require('path');
-const yaml = require('js-yaml')
+const yaml = require('js-yaml');
 
 const getFile = (dirPath, regexpOrString) => {
   if (!fs.existsSync(dirPath)){
@@ -47,14 +47,14 @@ const reformatCompartmentObjets = (data) => {
   return data.map((c) => {
     name = Object.values(c)[0];
     return { compartmentId: idfyString(name), name, letterCode: Object.keys(c)[0] };
-  } );
+  });
 };
 
 const reformatGeneObjets = (data) => {
   return data.map((g) => {
     id = Object.values(g[0])[0];
     return { geneId: id, name: '', alternateName: '', synonyms: '', function: '' };
-  } );
+  });
 };
 
 const reformatCompartmentalizedMetaboliteObjets = (data) => {
@@ -71,7 +71,7 @@ const reformatCompartmentalizedMetaboliteObjets = (data) => {
       isCurrency: false,
       compartment: m.compartment,
     };
-  } );
+  });
 };
 
 const reformatReactionObjets = (data) => {
@@ -149,7 +149,8 @@ const parseModelFiles = (modelDir) => {
     });
   });
 
-  // ===================================== SVG mapping file ==================================================
+  // ========================================================================
+  // SVG mapping file
   const svgNodes = [];
   ['compartment', 'subsystem'].forEach((component) => {
     const filename = `${component}SVG.tsv`;
@@ -208,10 +209,10 @@ const parseModelFiles = (modelDir) => {
     console.log(`svgMaps.csv file generated.`);
   });
 
-  // ===================================== external IDs and annotation -==================================================
+  // ========================================================================
+  // external IDs and annotation
 
   // extract EC code and PMID from reaction annotation file
-
   const reactionAnnoFile = getFile(modelDir, /REACTIONS[.]tsv$/);
   if (!reactionAnnoFile) {
     console.log("Error: reaction annotation file not found in path", modelDir);
@@ -286,7 +287,8 @@ const parseModelFiles = (modelDir) => {
   // extract description subsystem annotation file
   // TODO or remove annotation file
 
-  // ============== parse External IDs files
+  // ========================================================================
+  // parse External IDs files
   const externalIdNodes = [];
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
@@ -354,9 +356,8 @@ const parseModelFiles = (modelDir) => {
     });
   }
 
- // =====================================
-
-  // write main nodes relationships files =====================================
+  // ========================================================================
+  // write main nodes relationships files
 
   // need a map to get the compartment ID from the compartment letter
   const compartmentLetterToIdMap = content.compartment.reduce((entries, c) => {
@@ -377,7 +378,8 @@ const parseModelFiles = (modelDir) => {
     console.log('compartmentalizedMetaboliteCompartments file generated.');
   });
 
-  // write metabolite-compartmentalizedMetabolite relationships =====================================
+  // ========================================================================
+  // write metabolite-compartmentalizedMetabolite relationships
   // generate unique metabolite
   // keep only distinct metabolite (non-compartmentalize) and use the name to generate IDs
   let hm = {}
@@ -454,7 +456,6 @@ const parseModelFiles = (modelDir) => {
   }
 
   // ========================================================================
-
   // CM-M relationships
   csvWriter = createCsvWriter({
     path: `${outputPath}compartmentalizedMetaboliteMetabolites.csv`,
@@ -473,7 +474,7 @@ const parseModelFiles = (modelDir) => {
   content.metabolite = uniqueMetabolites;
   delete content.compartmentalizedMetabolite;
 
-  // write reactants-reaction, reaction-products, reaction-genes, reaction-susbsystems relationships files =====================================
+  // write reactants-reaction, reaction-products, reaction-genes, reaction-susbsystems relationships files
   csvWriterRR = createCsvWriter({
     path: `${outputPath}compartmentalizedMetaboliteReactions.csv`,
     header: [{ id: 'compartmentalizedMetaboliteId', title: 'compartmentalizedMetaboliteId' },
@@ -531,7 +532,8 @@ const parseModelFiles = (modelDir) => {
     console.log('reactionSubsystems file generated.');
   });
 
-  // write nodes files =====================================
+  // ========================================================================
+  // write nodes files
   Object.keys(content).forEach((k) => {
     const elements = content[k];
     csvWriter = createCsvWriter({
@@ -712,13 +714,12 @@ try {
   return;
 }
 
-// write cyper intructions to file
+  // write cyper intructions to file
 fs.writeFileSync('./data/neo4j_instructions.txt', instructions.join('\n'), 'utf8');
 
-
-// ====================================================
-// write a smaller version of the hpa rna levels file, to send to the frontend
-// remove expressions of genes not in any human models parsed
+  // ========================================================================
+  // write a smaller version of the hpa rna levels file, to send to the frontend
+  // remove expressions of genes not in any human models parsed
 if (!fs.existsSync(`${inputDir}hpaRnaFull.json`)) {
     console.log("Error: HPA rna JSON file not found");
     return;
