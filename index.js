@@ -715,7 +715,7 @@ try {
 }
 
   // write cyper intructions to file
-fs.writeFileSync('./data/neo4j_instructions.txt', instructions.join('\n'), 'utf8');
+fs.writeFileSync('./data/import.cypher', instructions.join('\n'), 'utf8');
 
   // ========================================================================
   // write a smaller version of the hpa rna levels file, to send to the frontend
