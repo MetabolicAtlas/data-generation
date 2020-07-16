@@ -97,6 +97,7 @@ const humanGeneIdSet = new Set();
 const externalIdDBMap = {};
 const PMIDSset = new Set();
 let instructions = [];
+let dropIndexes = false;
 
 const parseModelFiles = (modelDir) => {
   // find the yaml in the folder
@@ -557,17 +558,24 @@ const parseModelFiles = (modelDir) => {
   // TODO generate instructions more dynamically
   if (instructions.length === 0) {
     instructions = [
-      'MATCH (n) DETACH DELETE n;',
-      'DROP INDEX ON :Metabolite(id);',
-      'DROP INDEX ON :CompartmentalizedMetabolite(id);',
-      'DROP INDEX ON :Compartment(id);',
-      'DROP INDEX ON :Reaction(id);',
-      'DROP INDEX ON :Gene(id);',
-      'DROP INDEX ON :Subsystem(id);',
-      'DROP INDEX ON :SvgMap(id);',
-      'DROP INDEX ON :ExternalDb(id);',
-      'DROP INDEX ON :PubmedReference(id);',
-      '',
+      'MATCH (n) DETACH DELETE n;\n',
+    ];
+
+    if (dropIndexes) {
+      instructions = instructions.concat([
+        'DROP INDEX ON :Metabolite(id);',
+        'DROP INDEX ON :CompartmentalizedMetabolite(id);',
+        'DROP INDEX ON :Compartment(id);',
+        'DROP INDEX ON :Reaction(id);',
+        'DROP INDEX ON :Gene(id);',
+        'DROP INDEX ON :Subsystem(id);',
+        'DROP INDEX ON :SvgMap(id);',
+        'DROP INDEX ON :ExternalDb(id);',
+        'DROP INDEX ON :PubmedReference(id);\n',
+      ]);
+    }
+
+    instructions = instructions.concat([
       'CREATE INDEX FOR (n:Metabolite) ON (n.id);',
       'CREATE INDEX FOR (n:CompartmentalizedMetabolite) ON (n.id);',
       'CREATE INDEX FOR (n:Compartment) ON (n.id);',
@@ -576,9 +584,8 @@ const parseModelFiles = (modelDir) => {
       'CREATE INDEX FOR (n:Subsystem) ON (n.id);',
       'CREATE INDEX FOR (n:SvgMap) ON (n.id);',
       'CREATE INDEX FOR (n:ExternalDb) ON (n.id);',
-      'CREATE INDEX FOR (n:PubmedReference) ON (n.id);',
-      '',
-    ]
+      'CREATE INDEX FOR (n:PubmedReference) ON (n.id);\n',
+    ]);
   }
 
   const cypherInstructions = `
@@ -687,10 +694,20 @@ CREATE (n1)-[:${version}]->(n2);
   });
 };
 
+
+const args = [];
 try {
-  inputDir = process.argv[2]
+  for (let i = 0; i < process.argv.length; i += 1) {
+    if (process.argv[i] === "--drop-indexes") {
+      dropIndexes = true;
+    } else {
+      args.push(process.argv[i]);
+    }
+  }
+  inputDir = args[2];
 } catch {
   console.log("Usage: yarn start input_dir");
+  console.log("Usage: yarn start input_dir --drop-indexes");
   return;
 }
 
