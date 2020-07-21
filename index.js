@@ -106,6 +106,7 @@ const parseModelFiles = (modelDir) => {
     console.log("Error: yaml file not found in path ", modelDir);
     return;
   }
+  console.log("Files created:");
 
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
@@ -187,7 +188,7 @@ const parseModelFiles = (modelDir) => {
         svgRels.push({ [`${component}Id`]: idfyString(componentName), svgMapId: mapFilename.split('.')[0]});
       }
     } else {
-      console.log(`Warning: cannot mappingfile ${filename} in path`, modelDir);
+      console.log(`Warning: cannot find mappingfile ${filename} in path`, modelDir);
     }
 
     // write the associated file
@@ -197,7 +198,7 @@ const parseModelFiles = (modelDir) => {
                { id: 'svgMapId', title: 'svgMapId' }],
     });
     csvWriter.writeRecords(svgRels).then(() => {
-      console.log(`${component}SvgMaps.csv file generated.`);
+      console.log(`${component}SvgMaps.csv`);
     });
   });
 
@@ -207,7 +208,7 @@ const parseModelFiles = (modelDir) => {
     header: svgNodes.length ? Object.keys(svgNodes[0]).map(k => Object({ id: k, title: k })) : '',
   });
   csvWriter.writeRecords(svgNodes).then(() => {
-    console.log(`svgMaps.csv file generated.`);
+    console.log(`svgMaps.csv`);
   });
 
   // ========================================================================
@@ -250,7 +251,7 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(PMIDs.map(
     (id) => { return { id }; }
   )).then(() => {
-    console.log('pubmedReferences file generated.');
+    console.log('pubmedReferences');
   });
 
   // write reaction pubmed reference file
@@ -260,7 +261,7 @@ const parseModelFiles = (modelDir) => {
              { id: 'pubmedReferenceId', title: 'pubmedReferenceId' }],
   });
   csvWriter.writeRecords(reactionPMID).then(() => {
-    console.log('reactionPubmedReferences file generated.');
+    console.log('reactionPubmedReferences');
   });
 
   // extract information from gene annotation file
@@ -342,7 +343,7 @@ const parseModelFiles = (modelDir) => {
     csvWriter.writeRecords(externalIdDBComponentRel.map(
       (e) => { return { [`${component}Id`]: e.id, externalDbId: e.externalDbId }; }
     )).then(() => {
-      console.log(`${component}ExternalDbs.csv file generated.`);
+      console.log(`${component}ExternalDbs.csv`);
     });
   });
 
@@ -353,7 +354,7 @@ const parseModelFiles = (modelDir) => {
       header: Object.keys(externalIdNodes[0]).map(k => Object({ id: k, title: k })),
     });
     csvWriter.writeRecords(externalIdNodes).then(() => {
-      console.log('externalDbs file generated.');
+      console.log('externalDbs');
     });
   }
 
@@ -376,7 +377,7 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(content.compartmentalizedMetabolite.map(
     (e) => { return { compartmentalizedMetaboliteId: e.compartmentalizedMetaboliteId, compartmentId: compartmentLetterToIdMap[e.compartment] }; }
   )).then(() => {
-    console.log('compartmentalizedMetaboliteCompartments file generated.');
+    console.log('compartmentalizedMetaboliteCompartments');
   });
 
   // ========================================================================
@@ -429,7 +430,7 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(content.compartmentalizedMetabolite.map(
     (e) => { return { id: e.compartmentalizedMetaboliteId }; }
   )).then(() => {
-    console.log('compartmentalizedMetabolites file generated.');
+    console.log('compartmentalizedMetabolites');
   });
 
   // ========================================================================
@@ -468,7 +469,7 @@ const parseModelFiles = (modelDir) => {
       return { compartmentalizedMetaboliteId: e.compartmentalizedMetaboliteId,
                metaboliteId: uniqueCompartmentalizedMap[e.compartmentalizedMetaboliteId] }; }
   )).then(() => {
-    console.log('compartmentalizedMetaboliteMetabolites file generated.');
+    console.log('compartmentalizedMetaboliteMetabolites');
   });
 
   // delete compartmentlizedMetabolites, add unique metabolites
@@ -521,16 +522,16 @@ const parseModelFiles = (modelDir) => {
   });
 
   csvWriterRR.writeRecords(reactionReactantRecords).then(() => {
-    console.log('compartmentalizedMetaboliteReactions file generated.');
+    console.log('compartmentalizedMetaboliteReactions');
   });
   csvWriterRP.writeRecords(reactionProductRecords).then(() => {
-    console.log('reactionCompartmentalizedMetabolites file generated.');
+    console.log('reactionCompartmentalizedMetabolites');
   });
   csvWriterRG.writeRecords(reactionGeneRecords).then(() => {
-    console.log('reactionGenes file generated.');
+    console.log('reactionGenes');
   });
   csvWriterRS.writeRecords(reactionSubsystemRecords).then(() => {
-    console.log('reactionSubsystems file generated.');
+    console.log('reactionSubsystems');
   });
 
   // ========================================================================
@@ -542,7 +543,7 @@ const parseModelFiles = (modelDir) => {
       header: [Object({ id: 'id', title: 'id' })],
     });
     csvWriter.writeRecords(elements.map(e => Object({ id: e[`${k}Id`] }))).then(() => {
-      console.log(`${k}s file generated.`);
+      console.log(`${k}s`);
     });
     csvWriter = createCsvWriter({
       path: `${outputPath}${k}States.csv`,
@@ -726,6 +727,13 @@ try {
       parseModelFiles(filePath);
     }
   }
+  `CALL db.index.fulltext.createNodeIndex(
+    "fulltext",
+    ["CompartmentState", "Compartment", "MetaboliteState", "Metabolite", "CompartmentalizedMetabolite", "SubsystemState", "Subsystem", "ReactionState", "Reaction", "GeneState", "Gene", "PubMedReference"],
+    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID"]
+  `.split('\n').forEach(i => {
+    instructions.push(i);
+  });
 } catch (e) {
   console.log(e);
   return;
@@ -737,11 +745,11 @@ fs.writeFileSync('./data/import.cypher', instructions.join('\n'), 'utf8');
   // ========================================================================
   // write a smaller version of the hpa rna levels file, to send to the frontend
   // remove expressions of genes not in any human models parsed
-if (!fs.existsSync(`${inputDir}hpaRnaFull.json`)) {
+if (!fs.existsSync(`${inputDir}/hpaRnaFull.json`)) {
     console.log("Error: HPA rna JSON file not found");
     return;
 } else {
-  const hpaRnaExpressionJson = require(`${inputDir}hpaRnaFull.json`);
+  const hpaRnaExpressionJson = require(`${inputDir}/hpaRnaFull.json`);
 
   Object.keys(hpaRnaExpressionJson.levels).forEach((geneId) => {
     if (!humanGeneIdSet.has(geneId)) {
