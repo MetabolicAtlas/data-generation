@@ -575,6 +575,8 @@ const parseModelFiles = (modelDir) => {
         'DROP INDEX ON :SvgMap(id);',
         'DROP INDEX ON :ExternalDb(id);',
         'DROP INDEX ON :PubmedReference(id);\n',
+        'CALL apoc.schema.assert({},{},true) YIELD label, key RETURN *;',
+        'CALL  db.index.fulltext.drop(\"fulltext\");\n',
       ]);
     }
 
@@ -701,7 +703,7 @@ CREATE (n1)-[:${version}]->(n2);
 const args = [];
 try {
   for (let i = 0; i < process.argv.length; i += 1) {
-    if (process.argv[i] === "--drop-indexes") {
+    if (process.argv[i] === "--resset-db") {
       dropIndexes = true;
     } else {
       args.push(process.argv[i]);
