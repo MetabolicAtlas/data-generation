@@ -703,7 +703,7 @@ CREATE (n1)-[:${version}]->(n2);
 const args = [];
 try {
   for (let i = 0; i < process.argv.length; i += 1) {
-    if (process.argv[i] === "--resset-db") {
+    if (process.argv[i] === "--reset-db") {
       dropIndexes = true;
     } else {
       args.push(process.argv[i]);
