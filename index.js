@@ -143,7 +143,7 @@ const parseModelFiles = (modelDir) => {
   content.reaction.forEach((r) => {
     r.subsystems.forEach((name) => {
       const id = idfyString(name);
-      const subsystemObject = { id, name }; // TODO add 'description' key
+      const subsystemObject = { subsystemId: id, name }; // TODO add 'description' key
       if (!(id in componentIdDict.subsystem)) {
         content.subsystem.push(subsystemObject);
         componentIdDict.subsystem[id] = subsystemObject;
