@@ -207,35 +207,35 @@ const parseModelFiles = (modelDir) => {
   });
   csvWriter.writeRecords(svgNodes);
 
+
   // ========================================================================
   // external IDs and annotation
 
   // extract EC code and PMID from reaction annotation file
-  const reactionAnnoFile = getFile(modelDir, /REACTIONS[.]tsv$/);
-  if (!reactionAnnoFile) {
-    console.log("Error: reaction annotation file not found in path", modelDir);
-    return;
-  }
-
-  // TODO use one of the csv parsing lib (sync)
-  lines = fs.readFileSync(reactionAnnoFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
   const reactionPMID = [];
   const PMIDs = [];
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i][0] == '#' || lines[i][0] == '@') {
-      continue;
-    }
-    const [ reactionId, ECList, PMIDList ] = lines[i].split('\t').map(e => e.trim());
-    // EC are already provided by the YAML (without the 'EC:' prefix), TODO remove from annotation file?
-    if (reactionId in componentIdDict.reaction && PMIDList) { //only keep the ones in the model
-      PMIDList.split('; ').forEach((pubmedReferenceId) => {
-        reactionPMID.push({ reactionId, pubmedReferenceId });
-        if (!PMIDSset.has(pubmedReferenceId)) {
-          PMIDs.push(pubmedReferenceId);
-          PMIDSset.add(pubmedReferenceId);
-        }
-      });
+  const reactionAnnoFile = getFile(modelDir, /REACTIONS[.]tsv$/);
+  if (!reactionAnnoFile) {
+    console.log("Warning: cannot find reaction annotation file REACTIONS.tsv in path", modelDir);
+  } else {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(reactionAnnoFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#' || lines[i][0] == '@') {
+        continue;
+      }
+      const [ reactionId, ECList, PMIDList ] = lines[i].split('\t').map(e => e.trim());
+      // EC are already provided by the YAML (without the 'EC:' prefix), TODO remove from annotation file?
+      if (reactionId in componentIdDict.reaction && PMIDList) { //only keep the ones in the model
+        PMIDList.split('; ').forEach((pubmedReferenceId) => {
+          reactionPMID.push({ reactionId, pubmedReferenceId });
+          if (!PMIDSset.has(pubmedReferenceId)) {
+            PMIDs.push(pubmedReferenceId);
+            PMIDSset.add(pubmedReferenceId);
+          }
+        });
+      }
     }
   }
 
@@ -257,24 +257,22 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(reactionPMID);
 
   // extract information from gene annotation file
-
   const geneAnnoFile = getFile(modelDir, /GENES[.]tsv$/);
   if (!geneAnnoFile) {
-    console.log("Error: gene annotation file not found in path", modelDir);
-    return;
-  }
-
-  // TODO use one of the csv parsing lib (sync)
-  lines = fs.readFileSync(geneAnnoFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i][0] == '#' || lines[i][0] == '@') {
-      continue;
-    }
-    const [ geneId, name, alternateName, synonyms, thefunction, ec, catalytic_activity ] = lines[i].split('\t').map(e => e.trim());
-    if (geneId in componentIdDict.gene) { //only keep the ones in the model
-      const gene = componentIdDict.gene[geneId];
-      Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
+    console.log("Warning: cannot find gene annotation file GENES.tsv in path", modelDir);
+  } else {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(geneAnnoFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#' || lines[i][0] == '@') {
+        continue;
+      }
+      const [ geneId, name, alternateName, synonyms, thefunction, ec, catalytic_activity ] = lines[i].split('\t').map(e => e.trim());
+      if (geneId in componentIdDict.gene) { //only keep the ones in the model
+        const gene = componentIdDict.gene[geneId];
+        Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
+      }
     }
   }
 
@@ -337,14 +335,15 @@ const parseModelFiles = (modelDir) => {
     ));
   });
 
-  if (externalIdNodes.length !== 0) {
-    // write the externalDbs file
-    csvWriter = createCsvWriter({
-      path: `${outputPath}externalDbs.csv`,
-      header: Object.keys(externalIdNodes[0]).map(k => Object({ id: k, title: k })),
-    });
-    csvWriter.writeRecords(externalIdNodes);
-  }
+  // write the externalDbs file
+  csvWriter = createCsvWriter({
+    path: `${outputPath}externalDbs.csv`,
+    header: [{ id: 'id', title:'id' },
+             { id: 'dbName', title:'dbName' },
+             { id: 'externalId', title:'externalId' },
+             { id: 'url', title:'url' }],
+  });
+  csvWriter.writeRecords(externalIdNodes);
 
   // ========================================================================
   // write main nodes relationships files
@@ -422,22 +421,21 @@ const parseModelFiles = (modelDir) => {
 
   const metaboliteAnnoFile = getFile(modelDir, /METABOLITES[.]tsv$/);
   if (!metaboliteAnnoFile) {
-    console.log("Error: metabolite annotation file not found in path", modelDir);
-    return;
-  }
-
-  // TODO use one of the csv parsing lib (sync)
-  lines = fs.readFileSync(metaboliteAnnoFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i][0] == '#' || lines[i][0] == '@') {
-      continue;
-    }
-    const [ metaboliteId, alternateName, synonyms, description, mass, inchi ] = lines[i].split('\t').map(e => e.trim());
-    if (metaboliteId in componentIdDict.compartmentalizedMetabolite) { //only keep the ones in the model
-      // find the unique met associated
-      const umet = uniqueMetDict[componentIdDict.compartmentalizedMetabolite[metaboliteId].name];
-      Object.assign(umet, { alternateName, synonyms, description }); // other props are not in the db design, TODO remove them?
+    console.log("Warning: cannot find metabolite annotation file METABOLITES.tsv in path", modelDir);
+  } else {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(metaboliteAnnoFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#' || lines[i][0] == '@') {
+        continue;
+      }
+      const [ metaboliteId, alternateName, synonyms, description, mass, inchi ] = lines[i].split('\t').map(e => e.trim());
+      if (metaboliteId in componentIdDict.compartmentalizedMetabolite) { //only keep the ones in the model
+        // find the unique met associated
+        const umet = uniqueMetDict[componentIdDict.compartmentalizedMetabolite[metaboliteId].name];
+        Object.assign(umet, { alternateName, synonyms, description }); // other props are not in the db design, TODO remove them?
+      }
     }
   }
 
