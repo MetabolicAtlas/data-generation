@@ -105,7 +105,7 @@ const parseModelFiles = (modelDir) => {
   yamlFile = getFile(modelDir, /.*[.](yaml|yml)$/);
   if (!yamlFile) {
     console.log("Error: yaml file not found in path ", modelDir);
-    return;
+    exit;
   }
 
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
@@ -205,7 +205,7 @@ const parseModelFiles = (modelDir) => {
     path: `${outputPath}svgMaps.csv`,
     header: svgNodes.length ? Object.keys(svgNodes[0]).map(k => Object({ id: k, title: k })) : '',
   });
-  csvWriter;
+  csvWriter.writeRecords(svgNodes);
 
   // ========================================================================
   // external IDs and annotation
@@ -516,9 +516,7 @@ const parseModelFiles = (modelDir) => {
       path: `${outputPath}${k}s.csv`,
       header: [Object({ id: 'id', title: 'id' })],
     });
-    csvWriter.writeRecords(elements.map(e => Object({ id: e[`${k}Id`] }))).then(() => {
-      console.log(`${k}s`);
-    });
+    csvWriter.writeRecords(elements.map(e => Object({ id: e[`${k}Id`] })));
     csvWriter = createCsvWriter({
       path: `${outputPath}${k}States.csv`,
       header: Object.keys(elements[0]).
@@ -708,6 +706,10 @@ try {
     instructions.push(i);
   });
 } catch (e) {
+  if (e.mark) {
+    // avoid to print the whole yaml into console
+    e.mark.buffer = '';
+  }
   console.log(e);
   return;
 }
