@@ -575,8 +575,7 @@ const parseModelFiles = (modelDir) => {
         'DROP INDEX ON :SvgMap(id);',
         'DROP INDEX ON :ExternalDb(id);',
         'DROP INDEX ON :PubmedReference(id);\n',
-        'CALL apoc.schema.assert({},{},true) YIELD label, key RETURN *;',
-        'CALL  db.index.fulltext.drop(\"fulltext\");\n',
+        'CALL db.index.fulltext.drop(\"fulltext\");\n',
       ]);
     }
 
@@ -732,7 +731,7 @@ try {
   `CALL db.index.fulltext.createNodeIndex(
     "fulltext",
     ["CompartmentState", "Compartment", "MetaboliteState", "Metabolite", "CompartmentalizedMetabolite", "SubsystemState", "Subsystem", "ReactionState", "Reaction", "GeneState", "Gene", "PubMedReference"],
-    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID"])
+    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID"]);
   `.split('\n').forEach(i => {
     instructions.push(i);
   });
