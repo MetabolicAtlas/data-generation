@@ -708,7 +708,7 @@ try {
       args.push(process.argv[i]);
     }
   }
-  inputDir = args[2];
+  inputDir = args[2] + '/integrated-models';
 } catch {
   console.log("Usage: yarn start input_dir");
   console.log("Usage: yarn start input_dir --drop-indexes");
