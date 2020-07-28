@@ -86,6 +86,7 @@ const reformatReactionObjets = (data) => {
       lowerBound: r.lower_bound,
       upperBound: r.upper_bound,
       geneRule: r.gene_reaction_rule,
+      reversible: r.lower_bound === -1000,
       ec: r.eccodes,
       subsystems: r.subsystem ? Array.isArray(r.subsystem) ? r.subsystem : [r.subsystem] : [],
     };
@@ -104,9 +105,8 @@ const parseModelFiles = (modelDir) => {
   yamlFile = getFile(modelDir, /.*[.](yaml|yml)$/);
   if (!yamlFile) {
     console.log("Error: yaml file not found in path ", modelDir);
-    return;
+    exit;
   }
-  console.log("Files created:");
 
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
@@ -197,9 +197,7 @@ const parseModelFiles = (modelDir) => {
       header: [{ id: `${component}Id`, title: `${component}Id` },
                { id: 'svgMapId', title: 'svgMapId' }],
     });
-    csvWriter.writeRecords(svgRels).then(() => {
-      console.log(`${component}SvgMaps.csv`);
-    });
+    csvWriter.writeRecords(svgRels);
   });
 
   // write svgMaps file
@@ -207,39 +205,37 @@ const parseModelFiles = (modelDir) => {
     path: `${outputPath}svgMaps.csv`,
     header: svgNodes.length ? Object.keys(svgNodes[0]).map(k => Object({ id: k, title: k })) : '',
   });
-  csvWriter.writeRecords(svgNodes).then(() => {
-    console.log(`svgMaps.csv`);
-  });
+  csvWriter.writeRecords(svgNodes);
+
 
   // ========================================================================
   // external IDs and annotation
 
   // extract EC code and PMID from reaction annotation file
-  const reactionAnnoFile = getFile(modelDir, /REACTIONS[.]tsv$/);
-  if (!reactionAnnoFile) {
-    console.log("Error: reaction annotation file not found in path", modelDir);
-    return;
-  }
-
-  // TODO use one of the csv parsing lib (sync)
-  lines = fs.readFileSync(reactionAnnoFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
   const reactionPMID = [];
   const PMIDs = [];
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i][0] == '#' || lines[i][0] == '@') {
-      continue;
-    }
-    const [ reactionId, ECList, PMIDList ] = lines[i].split('\t').map(e => e.trim());
-    // EC are already provided by the YAML (without the 'EC:' prefix), TODO remove from annotation file?
-    if (reactionId in componentIdDict.reaction && PMIDList) { //only keep the ones in the model
-      PMIDList.split('; ').forEach((pubmedReferenceId) => {
-        reactionPMID.push({ reactionId, pubmedReferenceId });
-        if (!PMIDSset.has(pubmedReferenceId)) {
-          PMIDs.push(pubmedReferenceId);
-          PMIDSset.add(pubmedReferenceId);
-        }
-      });
+  const reactionAnnoFile = getFile(modelDir, /REACTIONS[.]tsv$/);
+  if (!reactionAnnoFile) {
+    console.log("Warning: cannot find reaction annotation file REACTIONS.tsv in path", modelDir);
+  } else {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(reactionAnnoFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#' || lines[i][0] == '@') {
+        continue;
+      }
+      const [ reactionId, ECList, PMIDList ] = lines[i].split('\t').map(e => e.trim());
+      // EC are already provided by the YAML (without the 'EC:' prefix), TODO remove from annotation file?
+      if (reactionId in componentIdDict.reaction && PMIDList) { //only keep the ones in the model
+        PMIDList.split('; ').forEach((pubmedReferenceId) => {
+          reactionPMID.push({ reactionId, pubmedReferenceId });
+          if (!PMIDSset.has(pubmedReferenceId)) {
+            PMIDs.push(pubmedReferenceId);
+            PMIDSset.add(pubmedReferenceId);
+          }
+        });
+      }
     }
   }
 
@@ -250,9 +246,7 @@ const parseModelFiles = (modelDir) => {
   });
   csvWriter.writeRecords(PMIDs.map(
     (id) => { return { id }; }
-  )).then(() => {
-    console.log('pubmedReferences');
-  });
+  ));
 
   // write reaction pubmed reference file
   csvWriter = createCsvWriter({
@@ -260,29 +254,25 @@ const parseModelFiles = (modelDir) => {
     header: [{ id: 'reactionId', title: 'reactionId' },
              { id: 'pubmedReferenceId', title: 'pubmedReferenceId' }],
   });
-  csvWriter.writeRecords(reactionPMID).then(() => {
-    console.log('reactionPubmedReferences');
-  });
+  csvWriter.writeRecords(reactionPMID);
 
   // extract information from gene annotation file
-
   const geneAnnoFile = getFile(modelDir, /GENES[.]tsv$/);
   if (!geneAnnoFile) {
-    console.log("Error: gene annotation file not found in path", modelDir);
-    return;
-  }
-
-  // TODO use one of the csv parsing lib (sync)
-  lines = fs.readFileSync(geneAnnoFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i][0] == '#' || lines[i][0] == '@') {
-      continue;
-    }
-    const [ geneId, name, alternateName, synonyms, thefunction, ec, catalytic_activity ] = lines[i].split('\t').map(e => e.trim());
-    if (geneId in componentIdDict.gene) { //only keep the ones in the model
-      const gene = componentIdDict.gene[geneId];
-      Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
+    console.log("Warning: cannot find gene annotation file GENES.tsv in path", modelDir);
+  } else {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(geneAnnoFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#' || lines[i][0] == '@') {
+        continue;
+      }
+      const [ geneId, name, alternateName, synonyms, thefunction, ec, catalytic_activity ] = lines[i].split('\t').map(e => e.trim());
+      if (geneId in componentIdDict.gene) { //only keep the ones in the model
+        const gene = componentIdDict.gene[geneId];
+        Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
+      }
     }
   }
 
@@ -297,7 +287,7 @@ const parseModelFiles = (modelDir) => {
     const externalIdDBComponentRel = [];
     const filename = `${component.toUpperCase()}S_EID.tsv`;
     const extIDFile = getFile(modelDir, filename);
-    const IdSetKey = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
+    const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
 
     if (extIDFile) {
       // TODO use one of the csv parsing lib (sync)
@@ -309,7 +299,7 @@ const parseModelFiles = (modelDir) => {
           continue;
         }
         const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
-        if (!(id in componentIdDict[IdSetKey])) { //only keep the ones in the model
+        if (!(id in componentIdDict[fcomponent])) { //only keep the ones in the model
           continue;
         }
 
@@ -336,27 +326,24 @@ const parseModelFiles = (modelDir) => {
 
     // write the associated file
     csvWriter = createCsvWriter({
-      path: `${outputPath}${component}ExternalDbs.csv`,
-      header: [{ id: `${component}Id`, title: `${component}Id` },
+      path: `${outputPath}${fcomponent}ExternalDbs.csv`,
+      header: [{ id: `${fcomponent}Id`, title: `${fcomponent}Id` },
                { id: 'externalDbId', title: 'externalDbId' }],
     });
     csvWriter.writeRecords(externalIdDBComponentRel.map(
-      (e) => { return { [`${component}Id`]: e.id, externalDbId: e.externalDbId }; }
-    )).then(() => {
-      console.log(`${component}ExternalDbs.csv`);
-    });
+      (e) => { return { [`${fcomponent}Id`]: e.id, externalDbId: e.externalDbId }; }
+    ));
   });
 
-  if (externalIdNodes.length !== 0) {
-    // write the externalDbs file
-    csvWriter = createCsvWriter({
-      path: `${outputPath}externalDbs.csv`,
-      header: Object.keys(externalIdNodes[0]).map(k => Object({ id: k, title: k })),
-    });
-    csvWriter.writeRecords(externalIdNodes).then(() => {
-      console.log('externalDbs');
-    });
-  }
+  // write the externalDbs file
+  csvWriter = createCsvWriter({
+    path: `${outputPath}externalDbs.csv`,
+    header: [{ id: 'id', title:'id' },
+             { id: 'dbName', title:'dbName' },
+             { id: 'externalId', title:'externalId' },
+             { id: 'url', title:'url' }],
+  });
+  csvWriter.writeRecords(externalIdNodes);
 
   // ========================================================================
   // write main nodes relationships files
@@ -376,9 +363,7 @@ const parseModelFiles = (modelDir) => {
 
   csvWriter.writeRecords(content.compartmentalizedMetabolite.map(
     (e) => { return { compartmentalizedMetaboliteId: e.compartmentalizedMetaboliteId, compartmentId: compartmentLetterToIdMap[e.compartment] }; }
-  )).then(() => {
-    console.log('compartmentalizedMetaboliteCompartments');
-  });
+  ));
 
   // ========================================================================
   // write metabolite-compartmentalizedMetabolite relationships
@@ -429,31 +414,28 @@ const parseModelFiles = (modelDir) => {
 
   csvWriter.writeRecords(content.compartmentalizedMetabolite.map(
     (e) => { return { id: e.compartmentalizedMetaboliteId }; }
-  )).then(() => {
-    console.log('compartmentalizedMetabolites');
-  });
+  ));
 
   // ========================================================================
   // extract information from metabolite annotation file
 
   const metaboliteAnnoFile = getFile(modelDir, /METABOLITES[.]tsv$/);
   if (!metaboliteAnnoFile) {
-    console.log("Error: metabolite annotation file not found in path", modelDir);
-    return;
-  }
-
-  // TODO use one of the csv parsing lib (sync)
-  lines = fs.readFileSync(metaboliteAnnoFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i][0] == '#' || lines[i][0] == '@') {
-      continue;
-    }
-    const [ metaboliteId, alternateName, synonyms, description, mass, inchi ] = lines[i].split('\t').map(e => e.trim());
-    if (metaboliteId in componentIdDict.compartmentalizedMetabolite) { //only keep the ones in the model
-      // find the unique met associated
-      const umet = uniqueMetDict[componentIdDict.compartmentalizedMetabolite[metaboliteId].name];
-      Object.assign(umet, { alternateName, synonyms, description }); // other props are not in the db design, TODO remove them?
+    console.log("Warning: cannot find metabolite annotation file METABOLITES.tsv in path", modelDir);
+  } else {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(metaboliteAnnoFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#' || lines[i][0] == '@') {
+        continue;
+      }
+      const [ metaboliteId, alternateName, synonyms, description, mass, inchi ] = lines[i].split('\t').map(e => e.trim());
+      if (metaboliteId in componentIdDict.compartmentalizedMetabolite) { //only keep the ones in the model
+        // find the unique met associated
+        const umet = uniqueMetDict[componentIdDict.compartmentalizedMetabolite[metaboliteId].name];
+        Object.assign(umet, { alternateName, synonyms, description }); // other props are not in the db design, TODO remove them?
+      }
     }
   }
 
@@ -468,9 +450,7 @@ const parseModelFiles = (modelDir) => {
     (e) => { 
       return { compartmentalizedMetaboliteId: e.compartmentalizedMetaboliteId,
                metaboliteId: uniqueCompartmentalizedMap[e.compartmentalizedMetaboliteId] }; }
-  )).then(() => {
-    console.log('compartmentalizedMetaboliteMetabolites');
-  });
+  ));
 
   // delete compartmentlizedMetabolites, add unique metabolites
   content.metabolite = uniqueMetabolites;
@@ -521,18 +501,10 @@ const parseModelFiles = (modelDir) => {
     })
   });
 
-  csvWriterRR.writeRecords(reactionReactantRecords).then(() => {
-    console.log('compartmentalizedMetaboliteReactions');
-  });
-  csvWriterRP.writeRecords(reactionProductRecords).then(() => {
-    console.log('reactionCompartmentalizedMetabolites');
-  });
-  csvWriterRG.writeRecords(reactionGeneRecords).then(() => {
-    console.log('reactionGenes');
-  });
-  csvWriterRS.writeRecords(reactionSubsystemRecords).then(() => {
-    console.log('reactionSubsystems');
-  });
+  csvWriterRR.writeRecords(reactionReactantRecords);
+  csvWriterRP.writeRecords(reactionProductRecords);
+  csvWriterRG.writeRecords(reactionGeneRecords);
+  csvWriterRS.writeRecords(reactionSubsystemRecords);
 
   // ========================================================================
   // write nodes files
@@ -542,9 +514,7 @@ const parseModelFiles = (modelDir) => {
       path: `${outputPath}${k}s.csv`,
       header: [Object({ id: 'id', title: 'id' })],
     });
-    csvWriter.writeRecords(elements.map(e => Object({ id: e[`${k}Id`] }))).then(() => {
-      console.log(`${k}s`);
-    });
+    csvWriter.writeRecords(elements.map(e => Object({ id: e[`${k}Id`] })));
     csvWriter = createCsvWriter({
       path: `${outputPath}${k}States.csv`,
       header: Object.keys(elements[0]).
@@ -553,9 +523,7 @@ const parseModelFiles = (modelDir) => {
         map(k => Object({ id: k, title: k })),
     });
     // destructure object to remove the keys
-    csvWriter.writeRecords(elements.map(({ subsystems, metabolites, compartment, ...e }) => e)).then(() => {
-      console.log(`${k}States file generated.`);
-    });
+    csvWriter.writeRecords(elements.map(({ subsystems, metabolites, compartment, ...e }) => e));
   });
 
   // TODO generate instructions more dynamically
@@ -596,8 +564,8 @@ const parseModelFiles = (modelDir) => {
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.metabolites.csv" AS csvLine
 CREATE (n:Metabolite:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.metaboliteStates.csv" AS csvLine
-MATCH (n:Metabolite {id: csvLine.metaboliteId})
-CREATE (ns:MetaboliteState {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,description:csvLine.description,formula:csvLine.formula,charge:toInteger(csvLine.charge),isCurrency:toBoolean(csvLine.isCurrency)})
+MATCH (n:Metabolite:${model} {id: csvLine.metaboliteId})
+CREATE (ns:MetaboliteState:${model} {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,description:csvLine.description,formula:csvLine.formula,charge:toInteger(csvLine.charge),isCurrency:toBoolean(csvLine.isCurrency)})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetabolites.csv" AS csvLine
@@ -606,29 +574,29 @@ CREATE (n:CompartmentalizedMetabolite:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartments.csv" AS csvLine
 CREATE (n:Compartment:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentStates.csv" AS csvLine
-MATCH (n:Compartment {id: csvLine.compartmentId})
-CREATE (ns:CompartmentState {name:csvLine.name,letterCode:csvLine.letterCode})
+MATCH (n:Compartment:${model} {id: csvLine.compartmentId})
+CREATE (ns:CompartmentState:${model} {name:csvLine.name,letterCode:csvLine.letterCode})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactions.csv" AS csvLine
 CREATE (n:Reaction:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionStates.csv" AS csvLine
-MATCH (n:Reaction {id: csvLine.reactionId})
-CREATE (ns:ReactionState {name:csvLine.name,reversible:toBoolean(csvLine.reversible),lowerBound:toInteger(csvLine.lowerBound),upperBound:toInteger(csvLine.upperBound),geneRule:csvLine.geneRule,ec:csvLine.ec})
+MATCH (n:Reaction:${model} {id: csvLine.reactionId})
+CREATE (ns:ReactionState:${model} {name:csvLine.name,reversible:toBoolean(csvLine.reversible),lowerBound:toInteger(csvLine.lowerBound),upperBound:toInteger(csvLine.upperBound),geneRule:csvLine.geneRule,ec:csvLine.ec})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.genes.csv" AS csvLine
 CREATE (n:Gene:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.geneStates.csv" AS csvLine
-MATCH (n:Gene {id: csvLine.geneId})
-CREATE (ns:GeneState {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,function:csvLine.function})
+MATCH (n:Gene:${model} {id: csvLine.geneId})
+CREATE (ns:GeneState:${model} {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,function:csvLine.function})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystems.csv" AS csvLine
 CREATE (n:Subsystem:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemStates.csv" AS csvLine
-MATCH (n:Subsystem {id: csvLine.subsystemId})
-CREATE (ns:SubsystemState {name:csvLine.name})
+MATCH (n:Subsystem:${model} {id: csvLine.subsystemId})
+CREATE (ns:SubsystemState:${model} {name:csvLine.name})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.svgMaps.csv" AS csvLine
@@ -641,55 +609,55 @@ LOAD CSV WITH HEADERS FROM "file:///${prefix}.pubmedReferences.csv" AS csvLine
 CREATE (n:PubmedReference {id:csvLine.id,pubmedId:csvLine.pubmedId});
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteMetabolites.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:Metabolite {id: csvLine.metaboliteId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:Metabolite:${model} {id: csvLine.metaboliteId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteCompartments.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:Compartment {id: csvLine.compartmentId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:Compartment:${model} {id: csvLine.compartmentId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteReactions.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:Reaction {id: csvLine.reactionId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:Reaction:${model} {id: csvLine.reactionId})
 CREATE (n1)-[:${version} {stoichiometry:toFloat(csvLine.stoichiometry)}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionCompartmentalizedMetabolites.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId})
 CREATE (n1)-[:${version} {stoichiometry:toFloat(csvLine.stoichiometry)}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionGenes.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:Gene {id: csvLine.geneId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:Gene:${model} {id: csvLine.geneId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionSubsystems.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:Subsystem {id: csvLine.subsystemId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:Subsystem:${model} {id: csvLine.subsystemId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionPubmedReferences.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:PubmedReference {id: csvLine.pubmedReferenceId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:PubmedReference {id: csvLine.pubmedReferenceId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentSvgMaps.csv" AS csvLine
-MATCH (n1:Compartment {id: csvLine.compartmentId}),(n2:SvgMap {id: csvLine.svgMapId})
+MATCH (n1:Compartment:${model} {id: csvLine.compartmentId}),(n2:SvgMap:${model} {id: csvLine.svgMapId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemSvgMaps.csv" AS csvLine
-MATCH (n1:Subsystem {id: csvLine.subsystemId}),(n2:SvgMap {id: csvLine.svgMapId})
+MATCH (n1:Subsystem:${model} {id: csvLine.subsystemId}),(n2:SvgMap:${model} {id: csvLine.svgMapId})
 CREATE (n1)-[:${version}]->(n2);
 
-LOAD CSV WITH HEADERS FROM "file:///${prefix}.metaboliteExternalDbs.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.metaboliteId}),(n2:ExternalDb {id: csvLine.externalDbId})
+LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteExternalDbs.csv" AS csvLine
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemExternalDbs.csv" AS csvLine
-MATCH (n1:Subsystem {id: csvLine.subsystemId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:Subsystem:${model} {id: csvLine.subsystemId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionExternalDbs.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.geneExternalDbs.csv" AS csvLine
-MATCH (n1:Gene {id: csvLine.geneId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:Gene:${model} {id: csvLine.geneId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 `
@@ -711,7 +679,7 @@ try {
   inputDir = args[2] + '/integrated-models';
 } catch {
   console.log("Usage: yarn start input_dir");
-  console.log("Usage: yarn start input_dir --drop-indexes");
+  console.log("Usage: yarn start input_dir --reset-db");
   return;
 }
 
@@ -736,6 +704,10 @@ try {
     instructions.push(i);
   });
 } catch (e) {
+  if (e.mark) {
+    // avoid to print the whole yaml into console
+    e.mark.buffer = '';
+  }
   console.log(e);
   return;
 }
