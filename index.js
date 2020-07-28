@@ -564,8 +564,8 @@ const parseModelFiles = (modelDir) => {
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.metabolites.csv" AS csvLine
 CREATE (n:Metabolite:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.metaboliteStates.csv" AS csvLine
-MATCH (n:Metabolite {id: csvLine.metaboliteId})
-CREATE (ns:MetaboliteState {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,description:csvLine.description,formula:csvLine.formula,charge:toInteger(csvLine.charge),isCurrency:toBoolean(csvLine.isCurrency)})
+MATCH (n:Metabolite:${model} {id: csvLine.metaboliteId})
+CREATE (ns:MetaboliteState:${model} {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,description:csvLine.description,formula:csvLine.formula,charge:toInteger(csvLine.charge),isCurrency:toBoolean(csvLine.isCurrency)})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetabolites.csv" AS csvLine
@@ -574,29 +574,29 @@ CREATE (n:CompartmentalizedMetabolite:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartments.csv" AS csvLine
 CREATE (n:Compartment:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentStates.csv" AS csvLine
-MATCH (n:Compartment {id: csvLine.compartmentId})
-CREATE (ns:CompartmentState {name:csvLine.name,letterCode:csvLine.letterCode})
+MATCH (n:Compartment:${model} {id: csvLine.compartmentId})
+CREATE (ns:CompartmentState:${model} {name:csvLine.name,letterCode:csvLine.letterCode})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactions.csv" AS csvLine
 CREATE (n:Reaction:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionStates.csv" AS csvLine
-MATCH (n:Reaction {id: csvLine.reactionId})
-CREATE (ns:ReactionState {name:csvLine.name,reversible:toBoolean(csvLine.reversible),lowerBound:toInteger(csvLine.lowerBound),upperBound:toInteger(csvLine.upperBound),geneRule:csvLine.geneRule,ec:csvLine.ec})
+MATCH (n:Reaction:${model} {id: csvLine.reactionId})
+CREATE (ns:ReactionState:${model} {name:csvLine.name,reversible:toBoolean(csvLine.reversible),lowerBound:toInteger(csvLine.lowerBound),upperBound:toInteger(csvLine.upperBound),geneRule:csvLine.geneRule,ec:csvLine.ec})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.genes.csv" AS csvLine
 CREATE (n:Gene:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.geneStates.csv" AS csvLine
-MATCH (n:Gene {id: csvLine.geneId})
-CREATE (ns:GeneState {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,function:csvLine.function})
+MATCH (n:Gene:${model} {id: csvLine.geneId})
+CREATE (ns:GeneState:${model} {name:csvLine.name,alternateName:csvLine.alternateName,synonyms:csvLine.synonyms,function:csvLine.function})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystems.csv" AS csvLine
 CREATE (n:Subsystem:${model} {id:csvLine.id});
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemStates.csv" AS csvLine
-MATCH (n:Subsystem {id: csvLine.subsystemId})
-CREATE (ns:SubsystemState {name:csvLine.name})
+MATCH (n:Subsystem:${model} {id: csvLine.subsystemId})
+CREATE (ns:SubsystemState:${model} {name:csvLine.name})
 CREATE (n)-[:${version}]->(ns);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.svgMaps.csv" AS csvLine
@@ -609,55 +609,55 @@ LOAD CSV WITH HEADERS FROM "file:///${prefix}.pubmedReferences.csv" AS csvLine
 CREATE (n:PubmedReference {id:csvLine.id,pubmedId:csvLine.pubmedId});
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteMetabolites.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:Metabolite {id: csvLine.metaboliteId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:Metabolite:${model} {id: csvLine.metaboliteId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteCompartments.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:Compartment {id: csvLine.compartmentId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:Compartment:${model} {id: csvLine.compartmentId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteReactions.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:Reaction {id: csvLine.reactionId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:Reaction:${model} {id: csvLine.reactionId})
 CREATE (n1)-[:${version} {stoichiometry:toFloat(csvLine.stoichiometry)}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionCompartmentalizedMetabolites.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId})
 CREATE (n1)-[:${version} {stoichiometry:toFloat(csvLine.stoichiometry)}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionGenes.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:Gene {id: csvLine.geneId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:Gene:${model} {id: csvLine.geneId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionSubsystems.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:Subsystem {id: csvLine.subsystemId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:Subsystem:${model} {id: csvLine.subsystemId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionPubmedReferences.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:PubmedReference {id: csvLine.pubmedReferenceId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:PubmedReference {id: csvLine.pubmedReferenceId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentSvgMaps.csv" AS csvLine
-MATCH (n1:Compartment {id: csvLine.compartmentId}),(n2:SvgMap {id: csvLine.svgMapId})
+MATCH (n1:Compartment:${model} {id: csvLine.compartmentId}),(n2:SvgMap:${model} {id: csvLine.svgMapId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemSvgMaps.csv" AS csvLine
-MATCH (n1:Subsystem {id: csvLine.subsystemId}),(n2:SvgMap {id: csvLine.svgMapId})
+MATCH (n1:Subsystem:${model} {id: csvLine.subsystemId}),(n2:SvgMap:${model} {id: csvLine.svgMapId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteExternalDbs.csv" AS csvLine
-MATCH (n1:CompartmentalizedMetabolite {id: csvLine.compartmentalizedMetaboliteId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemExternalDbs.csv" AS csvLine
-MATCH (n1:Subsystem {id: csvLine.subsystemId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:Subsystem:${model} {id: csvLine.subsystemId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionExternalDbs.csv" AS csvLine
-MATCH (n1:Reaction {id: csvLine.reactionId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.geneExternalDbs.csv" AS csvLine
-MATCH (n1:Gene {id: csvLine.geneId}),(n2:ExternalDb {id: csvLine.externalDbId})
+MATCH (n1:Gene:${model} {id: csvLine.geneId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
 `
