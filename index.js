@@ -154,7 +154,7 @@ const parseModelFiles = (modelDir) => {
   // SVG mapping file
   const svgNodes = [];
   ['compartment', 'subsystem'].forEach((component) => {
-    const filename = `${component}SVG.tsv`;
+    const filename = `${component}SVG.tsv.plain`;
     const mappingFile = getFile(modelDir, filename);
 
     let svgRels = [];
