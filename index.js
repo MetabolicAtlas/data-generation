@@ -4,7 +4,7 @@ const yaml = require('js-yaml');
 
 const getFile = (dirPath, regexpOrString) => {
   if (!fs.existsSync(dirPath)){
-    console.log("Error: no dir ", dirPath);
+    console.log("no dir ", dirPath);
     return;
   }
 
@@ -38,7 +38,7 @@ const mergedObjects = data => data.reduce((acc, item) => {
 const getGeneIdsFromGeneRule = (geneRule) => {
   let idList = [];
   if (geneRule) {
-    idList = geneRule.split(/[\s+and\s+|\s+or\s+|(+|)+|\s+]/).filter(e => e);
+    idList = geneRule.split(/\s+and\s+|\s+or\s+/).filter(e => e);
   }
   return idList;
 }
@@ -104,8 +104,7 @@ const parseModelFiles = (modelDir) => {
   // find the yaml in the folder
   yamlFile = getFile(modelDir, /.*[.](yaml|yml)$/);
   if (!yamlFile) {
-    console.log("Error: yaml file not found in path ", modelDir);
-    exit;
+    throw new Error("yaml file not found in path ", modelDir);
   }
 
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
@@ -170,19 +169,16 @@ const parseModelFiles = (modelDir) => {
         const [ componentName, mapName, mapFilename ] = lines[i].split('\t').map(e => e.trim());
 
         if (!content[component].map(e => e.name).includes(componentName)) {
-          console.log(`Error: ${componentName} ${component} does not exist in the model`);
-          exit;
+          throw new Error(`${componentName} ${component} does not exist in the model`);
         }
 
         if (filenameSet.has(mapFilename)) {
-          console.log(`Error: map ${mapFilename} can only be linked to one ${component}`);
-          exit;
+          throw new Error(`map ${mapFilename} can only be linked to one ${component}`);
         }
         filenameSet.add(mapFilename)
 
         if (!/^[a-z0-9_]+[.]svg$/.test(mapFilename)) {
-          console.log(`Error: map ${mapFilename} (${filename}) is invalid`);
-          exit;
+          throw new Error(`map ${mapFilename} (${filename}) is invalid`);
         }
         svgNodes.push({ id: mapFilename.split('.')[0], filename: mapFilename, customName: mapName });
         svgRels.push({ [`${component}Id`]: idfyString(componentName), svgMapId: mapFilename.split('.')[0]});
@@ -719,8 +715,7 @@ fs.writeFileSync('./data/import.cypher', instructions.join('\n'), 'utf8');
   // write a smaller version of the hpa rna levels file, to send to the frontend
   // remove expressions of genes not in any human models parsed
 if (!fs.existsSync(`${inputDir}/hpaRnaFull.json`)) {
-    console.log("Error: HPA rna JSON file not found");
-    return;
+    throw new Error("HPA rna JSON file not found");
 } else {
   const hpaRnaExpressionJson = require(`${inputDir}/hpaRnaFull.json`);
 
