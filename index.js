@@ -695,7 +695,7 @@ try {
   `CALL db.index.fulltext.createNodeIndex(
     "fulltext",
     ["CompartmentState", "Compartment", "MetaboliteState", "Metabolite", "CompartmentalizedMetabolite", "SubsystemState", "Subsystem", "ReactionState", "Reaction", "GeneState", "Gene", "PubmedReference"],
-    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID"]);
+    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID", "ec"]);
   `.split('\n').forEach(i => {
     instructions.push(i);
   });
