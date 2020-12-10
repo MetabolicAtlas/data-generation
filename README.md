@@ -5,7 +5,7 @@
 ## Prerequisites
 
  * [yarn](https://yarnpkg.com/) >= 1.22 (usage of yarn can be found
-   [here](https://classic.yarnpkg.com/en/docs/cli/#toc-default-commandl)
+   [here](https://classic.yarnpkg.com/en/docs/cli/#toc-default-commandl))
  * [node.js](https://nodejs.org) >= v12
 
 ## Generating data
