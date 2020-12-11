@@ -21,11 +21,10 @@ and then by
 
 
 After that, a folder `data/` will be created under the current directory. This
-folder `data/` contains CSV files along with the cypher instructions to import
-the data. \<PATH TO DATA FILES\> should point to data files from this
-[gitrepo](https://github.com/MetabolicAtlas/data-files)
+folder `data/` contains CSV files along with the [Cypher](https://neo4j.com/developer/cypher/) instructions to import
+the data. `<PATH TO DATA FILES>` should point to data files from this
+[repository](https://github.com/MetabolicAtlas/data-files).
 
 Please note that while the aforementioned commands can be run on their own, the
-output is meaningful only for the deployment pipeline of the whole
-MetabolicAtlas.
+output is meaningful only for the deployment pipeline of [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).
 
