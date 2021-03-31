@@ -1,4 +1,3 @@
-
 const fs = require('fs'), path = require('path');
 const yaml = require('js-yaml');
 
@@ -153,9 +152,10 @@ const parseModelFiles = (modelDir) => {
   // ========================================================================
   // SVG mapping file
   const svgNodes = [];
-  ['compartment', 'subsystem'].forEach((component) => {
+  ['compartment', 'subsystem', 'custom'].forEach((component) => {
     const filename = `${component}SVG.tsv.plain`;
     const mappingFile = getFile(modelDir, filename);
+    const isCustom = component === 'custom';
 
     let svgRels = [];
     if (mappingFile) {
@@ -166,9 +166,17 @@ const parseModelFiles = (modelDir) => {
         if (lines[i][0] == '#' || lines[i][0] == '@') {
           continue;
         }
-        const [ componentName, mapName, mapFilename ] = lines[i].split('\t').map(e => e.trim());
 
-        if (!content[component].map(e => e.name).includes(componentName)) {
+        let componentName, mapName, mapFilename;
+
+        const columns = lines[i].split('\t').map(e => e.trim());
+        if (isCustom) {
+          [ mapName, mapFilename ] = columns;
+        } else {
+          [ componentName, mapName, mapFilename ] = columns;
+        }
+
+        if (componentName && !content[component].map(e => e.name).includes(componentName)) {
           throw new Error(`${componentName} ${component} does not exist in the model`);
         }
 
@@ -181,7 +189,13 @@ const parseModelFiles = (modelDir) => {
           throw new Error(`map ${mapFilename} (${filename}) is invalid`);
         }
         svgNodes.push({ id: mapFilename.split('.')[0], filename: mapFilename, customName: mapName });
-        svgRels.push({ [`${component}Id`]: idfyString(componentName), svgMapId: mapFilename.split('.')[0]});
+
+        if (componentName) {
+          svgRels.push({
+            [`${component}Id`]: idfyString(componentName),
+            svgMapId: mapFilename.split('.')[0],
+          });
+        }
       }
     } else {
       console.log(`Warning: cannot find mappingfile ${filename} in path`, modelDir);
