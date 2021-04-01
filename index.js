@@ -415,7 +415,7 @@ const parseModelFiles = (modelDir) => {
 
         const id = contentArr[0];
         if (!(id in componentIdDict[fcomponent])) { //only keep the ones in the model
-          console.log(id + ' not in '  + ' componentIdDict[' + fcomponent+']');
+          console.log('Warning: id ' + id + ' not in '  + ' componentIdDict[' + fcomponent+']');
           continue;
         }
 
