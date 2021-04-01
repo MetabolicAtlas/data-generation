@@ -17,6 +17,19 @@ const getFile = (dirPath, regexpOrString) => {
   }
 };
 
+function trim(x, characters=" \t\w") {
+  var start = 0;
+  while (characters.indexOf(x[start]) >= 0) {
+    start += 1;
+  }
+  var end = x.length - 1;
+  while (characters.indexOf(x[end]) >= 0) {
+    end -= 1;
+  }
+  return x.substr(start, end - start + 1);
+}
+
+
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 let csvWriter = null;
 
@@ -322,7 +335,7 @@ const parseModelFiles = (modelDir) => {
       'rxnMAID': 'MA',
     },
   };
-  dbnameDict['metabolite'] = {
+  dbnameDict['compartmentalizedMetabolite'] = {
     'url_map':{
       'metBiGGID': 'https://identifiers.org/bigg.metabolite',
       'metKEGGID': 'https://identifiers.org/kegg.metabolite',
@@ -368,6 +381,13 @@ const parseModelFiles = (modelDir) => {
       'geneProteinAtlasID':'Protein Atlas',
     }
   };
+  dbnameDict['subsystem'] = {
+    'url_map': {
+    },
+    'dbname_map':{
+    }
+  }
+
   const externalIdNodes = [];
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
@@ -387,14 +407,14 @@ const parseModelFiles = (modelDir) => {
         if (lines[i][0] == '#') {
           continue;
         } else if (i == 0) { /*read the header line*/
-          headerArr = lines[i].substring(1).split('\t').map(e => e.trim());
+          headerArr = lines[i].split('\t').map(e => trim(e, '"'));
         } else {
-          contentArr = lines[i].substring(1).split('\t').map(e => e.trim());
+          contentArr = lines[i].split('\t').map(e => trim(e, '"'));
         }
 
-        const numItem = contentArr.length;
         const id = contentArr[0];
         if (!(id in componentIdDict[fcomponent])) { //only keep the ones in the model
+          console.log(id + ' not in '  + ' componentIdDict[' + fcomponent+']');
           continue;
         }
 
@@ -404,11 +424,11 @@ const parseModelFiles = (modelDir) => {
           contentArr.push(id); /*For Ensembl, externalId is equal to id*/
           contentArr.push(id); /*For Protein Atlas, externalId is equal to id*/  
         }
+        const numItem = contentArr.length;
 
-        const j = 0;
-        for (j = 1; j < numItem; j++) {
+        for (let j = 1; j < numItem; j++) {
           const header = headerArr[j];
-          if (j == 1 && fcomponent == 'metabolite'){
+          if (fcomponent == 'metabolite' && j==1){
             continue;
           }
           const regex = "gene.*ID$";
@@ -417,7 +437,7 @@ const parseModelFiles = (modelDir) => {
           }
           const externalId = contentArr[j];
           const url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
-          const dbname = dbnameDict[fcomponent]['dbname_map'][header];
+          const dbName = dbnameDict[fcomponent]['dbname_map'][header];
           //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
 
           const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
@@ -429,6 +449,7 @@ const parseModelFiles = (modelDir) => {
             node = { id: extNodeIdTracker, dbName, externalId, url };
             externalIdDBMap[externalDbEntryKey] = node;
             extNodeIdTracker += 1;
+
 
             // save the node for externalDBs.csv
             externalIdNodes.push(node);
