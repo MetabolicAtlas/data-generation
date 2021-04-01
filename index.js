@@ -405,17 +405,17 @@ const parseModelFiles = (modelDir) => {
           contentArr.push(id); /*For Protein Atlas, externalId is equal to id*/  
         }
 
-        const i = 0;
-        for (i = 1; i < numItem; i++) {
-          const header = headerArr[i];
-          if (i == 1 && fcomponent == 'metabolite'){
+        const j = 0;
+        for (j = 1; j < numItem; j++) {
+          const header = headerArr[j];
+          if (j == 1 && fcomponent == 'metabolite'){
             continue;
           }
           const regex = "gene.*ID$";
           if (fcomponent == 'gene' && header.match(regex) == null){
             continue;
           }
-          const externalId = contentArr[i];
+          const externalId = contentArr[j];
           const url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
           const dbname = dbnameDict[fcomponent]['dbname_map'][header];
           //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
