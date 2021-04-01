@@ -381,12 +381,12 @@ const parseModelFiles = (modelDir) => {
       lines = fs.readFileSync(extIDFile, 
                 { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
 
-      const headerArr = [];
-      const contentArr = [];
+      var headerArr = [];
+      var contentArr = [];
       for (let i = 0; i < lines.length; i++) {
         if (lines[i][0] == '#') {
           continue;
-        } else if (lines[i][0] == '@') { /*read the header line*/
+        } else if (i == 0) { /*read the header line*/
           headerArr = lines[i].substring(1).split('\t').map(e => e.trim());
         } else {
           contentArr = lines[i].substring(1).split('\t').map(e => e.trim());
