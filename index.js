@@ -406,7 +406,7 @@ const parseModelFiles = (modelDir) => {
         }
 
         const i = 0;
-        for (i = 1, i < numItem; i++) { 
+        for (i = 1; i < numItem; i++) {
           const header = headerArr[i];
           if (i == 1 && fcomponent == 'metabolite'){
             continue;
@@ -436,6 +436,7 @@ const parseModelFiles = (modelDir) => {
 
           // save the relationships between the node and the current component ID (reaction, gene, etc)
           externalIdDBComponentRel.push({ id, externalDbId: node.id }); // e.g. geneId, externalDbId
+        }
       }
     } else {
       console.log(`Warning: cannot find external ID file ${filename} in path`, modelDir);
