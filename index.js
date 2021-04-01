@@ -291,7 +291,7 @@ const parseModelFiles = (modelDir) => {
 
   // ========================================================================
   // parse External IDs files
-  var dbnameDict = {};
+  const dbnameDict = {};
   dbnameDict['reaction'] = {
     'url_map': {
       'rxnKEGGID': 'https://identifiers.org/kegg.reaction',
@@ -381,17 +381,19 @@ const parseModelFiles = (modelDir) => {
       lines = fs.readFileSync(extIDFile, 
                 { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
 
+      const headerArr = [];
+      const contentArr = [];
       for (let i = 0; i < lines.length; i++) {
         if (lines[i][0] == '#') {
           continue;
         } else if (lines[i][0] == '@') { /*read the header line*/
-          var headerArr = lines[i].substring(1).split('\t').map(e => e.trim());
+          headerArr = lines[i].substring(1).split('\t').map(e => e.trim());
         } else {
-          var contentArr = lines[i].substring(1).split('\t').map(e => e.trim());
+          contentArr = lines[i].substring(1).split('\t').map(e => e.trim());
         }
 
-        var numItem = contentArr.length;
-        var id = contentArr[0];
+        const numItem = contentArr.length;
+        const id = contentArr[0];
         if (!(id in componentIdDict[fcomponent])) { //only keep the ones in the model
           continue;
         }
@@ -403,18 +405,18 @@ const parseModelFiles = (modelDir) => {
           contentArr.push(id); /*For Protein Atlas, externalId is equal to id*/  
         }
 
-        var i = 0;
+        const i = 0;
         for (i = 1, i < numItem; i++) { 
-          var header = headerArr[i];
+          const header = headerArr[i];
           if (i == 1 && fcomponent == 'metabolite'){
             continue;
           }
           if (fcomponent == 'gene' && header == 'geneNames'){
             continue;
           }
-          var externalId = contentArr[i];
-          var url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
-          var dbname = dbnameDict[fcomponent]['dbname_map'][header];
+          const externalId = contentArr[i];
+          const url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
+          const dbname = dbnameDict[fcomponent]['dbname_map'][header];
           //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
 
           const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
