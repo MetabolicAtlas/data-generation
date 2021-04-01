@@ -291,6 +291,79 @@ const parseModelFiles = (modelDir) => {
 
   // ========================================================================
   // parse External IDs files
+  var dbnameDict = {};
+  dbnameDict['reaction'] = {
+    'url_map': {
+      'rxnKEGGID': 'https://identifiers.org/kegg.reaction',
+      'rxnBiGGID': 'https://identifiers.org/bigg.reaction',
+      'rxnEHMNID': '',
+      'rxnHepatoNET1ID': '',
+      'rxnREACTOMEID': 'https://identifiers.org/reactome',
+      'rxnRecon3DID': 'https://identifiers.org/vmhreaction',
+      'rxnMetaNetXID': 'https://identifiers.org/metanetx.reaction',
+      'rxnHMR2ID': '',
+      'rxnRatconID': '',
+      'rxnTCDBID': '',
+      'spontaneous': '',
+      'rxnMAID': '',
+    },
+    'dbname_map': {
+      'rxnKEGGID': 'KEGG',
+      'rxnBiGGID': 'BiGG',
+      'rxnEHMNID': 'EHMN',
+      'rxnHepatoNET1ID': 'HepatoNET1',
+      'rxnREACTOMEID': 'Reactome',
+      'rxnRecon3DID': 'Recon3D',
+      'rxnMetaNetXID': 'MetaNetX',
+      'rxnHMR2ID': 'HMR 2.0',
+      'rxnRatconID': 'Ratcon',
+      'rxnTCDBID': 'TCDB',
+      'spontaneous': 'spontaneous',
+      'rxnMAID': 'MA',
+    },
+  };
+  dbnameDict['metabolite'] = {
+    'url_map':{
+      'metBiGGID': 'https://identifiers.org/bigg.metabolite',
+      'metKEGGID': 'https://identifiers.org/kegg.metabolite',
+      'metHMDBID': 'https://identifiers.org/hmdb',
+      'metChEBIID': 'https://identifiers.org/CHEBI',
+      'metPubChemID': 'https://identifiers.org/pubchem.compound',
+      'metLipidMapsID': 'https://identifiers.org/lipidmaps',
+      'metEHMNID': '',
+      'metHepatoNET1ID': '',
+      'metRecon3DID': 'https://identifiers.org/vmhmetabolite',
+      'metMetaNetXID': 'https://identifiers.org/metanetx.chemical',
+      'metHMR2ID': '',
+    },
+    'dbname_map': {
+      'metBiGGID': 'BiGG',
+      'metKEGGID': 'KEGG',
+      'metHMDBID': 'HMDB',
+      'metChEBIID': 'ChEBI',
+      'metPubChemID': 'PubChem',
+      'metLipidMapsID': 'LipidMaps',
+      'metEHMNID': 'EHMN',
+      'metHepatoNET1ID': 'HepatoNET1',
+      'metRecon3DID': 'Recon3D',
+      'metMetaNetXID': 'MetaNetX',
+      'metHMR2ID': 'HMR 2.0',
+    }
+  };
+  dbnameDict['metabolite'] = {
+    'url_map':{
+      'geneENSTID':'https://identifiers.org/ensembl',
+      'geneENSPID':'https://identifiers.org/ensembl',
+      'geneUniProtID':'https://identifiers.org/uniprot',
+      'geneEntrezID':'https://identifiers.org/ncbigene',
+    },
+    'dbname_map': {
+      'geneENSTID':'Ensembl transcript',
+      'geneENSPID':'Ensembl protein',
+      'geneUniProtID':'UniProt',
+      'geneEntrezID':'NCBI Gene',
+    }
+  };
   const externalIdNodes = [];
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
