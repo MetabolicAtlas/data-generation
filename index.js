@@ -399,8 +399,8 @@ const parseModelFiles = (modelDir) => {
         }
 
         if (fcomponent == "gene"){ /*add two more items Ensembl and Protein Atlas which is not included in the new format*/
-          headerArr.push('Ensembl');
-          headerArr.push('ProteinAtlas');
+          headerArr.push('geneEnsemblID');
+          headerArr.push('geneProteinAtlasID');
           contentArr.push(id); /*For Ensembl, externalId is equal to id*/
           contentArr.push(id); /*For Protein Atlas, externalId is equal to id*/  
         }
@@ -411,7 +411,8 @@ const parseModelFiles = (modelDir) => {
           if (i == 1 && fcomponent == 'metabolite'){
             continue;
           }
-          if (fcomponent == 'gene' && header == 'geneNames'){
+          const regex = "gene.*ID$";
+          if (fcomponent == 'gene' && header.match(regex) == null){
             continue;
           }
           const externalId = contentArr[i];
