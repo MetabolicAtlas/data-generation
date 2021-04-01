@@ -356,16 +356,16 @@ const parseModelFiles = (modelDir) => {
       'geneENSPID':'https://identifiers.org/ensembl',
       'geneUniProtID':'https://identifiers.org/uniprot',
       'geneEntrezID':'https://identifiers.org/ncbigene',
-      'Ensembl':'https://identifiers.org/ensembl',
-      'ProteinAtlas':'https://identifiers.org/hpa',
+      'geneEnsemblID':'https://identifiers.org/ensembl',
+      'geneProteinAtlasID':'https://identifiers.org/hpa',
     },
     'dbname_map': {
       'geneENSTID':'Ensembl transcript',
       'geneENSPID':'Ensembl protein',
       'geneUniProtID':'UniProt',
       'geneEntrezID':'NCBI Gene',
-      'Ensembl':'Ensembl',
-      'ProteinAtlas':'Protein Atlas',
+      'geneEnsemblID':'Ensembl',
+      'geneProteinAtlasID':'Protein Atlas',
     }
   };
   const externalIdNodes = [];
