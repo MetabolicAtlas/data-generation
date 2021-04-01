@@ -350,18 +350,22 @@ const parseModelFiles = (modelDir) => {
       'metHMR2ID': 'HMR 2.0',
     }
   };
-  dbnameDict['metabolite'] = {
+  dbnameDict['gene'] = {
     'url_map':{
       'geneENSTID':'https://identifiers.org/ensembl',
       'geneENSPID':'https://identifiers.org/ensembl',
       'geneUniProtID':'https://identifiers.org/uniprot',
       'geneEntrezID':'https://identifiers.org/ncbigene',
+      'Ensembl':'https://identifiers.org/ensembl',
+      'ProteinAtlas':'https://identifiers.org/hpa',
     },
     'dbname_map': {
       'geneENSTID':'Ensembl transcript',
       'geneENSPID':'Ensembl protein',
       'geneUniProtID':'UniProt',
       'geneEntrezID':'NCBI Gene',
+      'Ensembl':'Ensembl',
+      'ProteinAtlas':'Protein Atlas',
     }
   };
   const externalIdNodes = [];
