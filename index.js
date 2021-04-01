@@ -408,6 +408,7 @@ const parseModelFiles = (modelDir) => {
           continue;
         } else if (i == 0) { /*read the header line*/
           headerArr = lines[i].split('\t').map(e => trim(e, '"'));
+          continue;
         } else {
           contentArr = lines[i].split('\t').map(e => trim(e, '"'));
         }
