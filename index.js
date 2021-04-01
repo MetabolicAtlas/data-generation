@@ -372,7 +372,7 @@ const parseModelFiles = (modelDir) => {
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
     const externalIdDBComponentRel = [];
-    const filename = `${component.toUpperCase()}S_EID.tsv`;
+    const filename = `${component}s-new.tsv`;
     const extIDFile = getFile(modelDir, filename);
     const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
 
@@ -382,30 +382,57 @@ const parseModelFiles = (modelDir) => {
                 { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
 
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i][0] == '#' || lines[i][0] == '@') {
+        if (lines[i][0] == '#') {
           continue;
+        } else if (lines[i][0] == '@') { /*read the header line*/
+          var headerArr = lines[i].substring(1).split('\t').map(e => e.trim());
+        } else {
+          var contentArr = lines[i].substring(1).split('\t').map(e => e.trim());
         }
-        const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
+
+        var numItem = contentArr.length;
+        var id = contentArr[0];
         if (!(id in componentIdDict[fcomponent])) { //only keep the ones in the model
           continue;
         }
 
-        const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
-
-        let node = null;
-        if (externalDbEntryKey in externalIdDBMap) {
-          node = externalIdDBMap[externalDbEntryKey]; // reuse the node and id
-        } else {
-          node = { id: extNodeIdTracker, dbName, externalId, url };
-          externalIdDBMap[externalDbEntryKey] = node;
-          extNodeIdTracker += 1;
-
-          // save the node for externalDBs.csv
-          externalIdNodes.push(node);
+        if (fcomponent == "gene"){ /*add two more items Ensembl and Protein Atlas which is not included in the new format*/
+          headerArr.push('Ensembl');
+          headerArr.push('ProteinAtlas');
+          contentArr.push(id); /*For Ensembl, externalId is equal to id*/
+          contentArr.push(id); /*For Protein Atlas, externalId is equal to id*/  
         }
 
-        // save the relationships between the node and the current component ID (reaction, gene, etc)
-        externalIdDBComponentRel.push({ id, externalDbId: node.id }); // e.g. geneId, externalDbId
+        var i = 0;
+        for (i = 1, i < numItem; i++) { 
+          var header = headerArr[i];
+          if (i == 1 && fcomponent == 'metabolite'){
+            continue;
+          }
+          if (fcomponent == 'gene' && header == 'geneNames'){
+            continue;
+          }
+          var externalId = contentArr[i];
+          var url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
+          var dbname = dbnameDict[fcomponent]['dbname_map'][header];
+          //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
+
+          const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
+
+          let node = null;
+          if (externalDbEntryKey in externalIdDBMap) {
+            node = externalIdDBMap[externalDbEntryKey]; // reuse the node and id
+          } else {
+            node = { id: extNodeIdTracker, dbName, externalId, url };
+            externalIdDBMap[externalDbEntryKey] = node;
+            extNodeIdTracker += 1;
+
+            // save the node for externalDBs.csv
+            externalIdNodes.push(node);
+          }
+
+          // save the relationships between the node and the current component ID (reaction, gene, etc)
+          externalIdDBComponentRel.push({ id, externalDbId: node.id }); // e.g. geneId, externalDbId
       }
     } else {
       console.log(`Warning: cannot find external ID file ${filename} in path`, modelDir);
