@@ -177,16 +177,16 @@ const parseModelFiles = (modelDir) => {
         }
 
         if (componentName && !content[component].map(e => e.name).includes(componentName)) {
-          throw new Error(`${componentName} ${component} does not exist in the model`);
+          throw new Error(`${component} "${componentName}" does not exist in the model "${metadataSection.short_name}"`);
         }
 
         if (filenameSet.has(mapFilename)) {
-          throw new Error(`map ${mapFilename} can only be linked to one ${component}`);
+          throw new Error(`map ${mapFilename} can only be linked to one ${component} in the model "${metadataSection.short_name}"`);
         }
         filenameSet.add(mapFilename)
 
         if (!/^[a-z0-9_]+[.]svg$/.test(mapFilename)) {
-          throw new Error(`map ${mapFilename} (${filename}) is invalid`);
+          throw new Error(`map "${mapFilename}" referenced by ${metadataSection.short_name}/${filename} is invalid`);
         }
         svgNodes.push({ id: mapFilename.split('.')[0], filename: mapFilename, customName: mapName });
 
