@@ -110,7 +110,7 @@ const parseModelFiles = (modelDir) => {
   const metadataSection = metadata.metaData || metadata.metadata;
   const model = toLabelCase(metadataSection.short_name);
   const version = `V${metadataSection.version.replace(/\./g, '_')}`;
-  const isHuman = metadataSection.organism === 'Homo sapiens';
+  const isHuman = metadataSection.short_name === 'Human-GEM';
 
   const prefix = `${model}${version}`;
   const outputPath = `./data/${prefix}.`;
