@@ -319,6 +319,8 @@ const parseModelFiles = (modelDir) => {
       'rxnTCDBID': '',
       'spontaneous': '',
       'rxnMAID': '',
+      'rxnRheaID': '',
+      'rxnRheaMasterID': '',
     },
     'dbname_map': {
       'rxnKEGGID': 'KEGG',
@@ -333,6 +335,8 @@ const parseModelFiles = (modelDir) => {
       'rxnTCDBID': 'TCDB',
       'spontaneous': 'spontaneous',
       'rxnMAID': 'MA',
+      'rxnRheaID': 'Rhea',
+      'rxnRheaMasterID': 'RheaMaster',
     },
   };
   dbnameDict['compartmentalizedMetabolite'] = {
@@ -348,6 +352,8 @@ const parseModelFiles = (modelDir) => {
       'metRecon3DID': 'https://identifiers.org/vmhmetabolite',
       'metMetaNetXID': 'https://identifiers.org/metanetx.chemical',
       'metHMR2ID': '',
+      'metMAID': '',
+
     },
     'dbname_map': {
       'metBiGGID': 'BiGG',
@@ -361,6 +367,7 @@ const parseModelFiles = (modelDir) => {
       'metRecon3DID': 'Recon3D',
       'metMetaNetXID': 'MetaNetX',
       'metHMR2ID': 'HMR 2.0',
+      'metMAID': 'MA',
     }
   };
   dbnameDict['gene'] = {
@@ -392,7 +399,7 @@ const parseModelFiles = (modelDir) => {
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
     const externalIdDBComponentRel = [];
-    const filename = `${component}s-new.tsv`;
+    const filename = `${component}s.tsv`;
     const extIDFile = getFile(modelDir, filename);
     const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
 
