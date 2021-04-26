@@ -280,9 +280,9 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(reactionPMID);
 
   // extract information from gene annotation file
-  const geneAnnoFile = getFile(modelDir, /GENES[.]tsv$/);
+  const geneAnnoFile = getFile(modelDir, /genes[.]tsv$/);
   if (!geneAnnoFile) {
-    console.log("Warning: cannot find gene annotation file GENES.tsv in path", modelDir);
+    console.log("Warning: cannot find gene annotation file genes.tsv in path", modelDir);
   } else {
     // TODO use one of the csv parsing lib (sync)
     lines = fs.readFileSync(geneAnnoFile, 
@@ -291,7 +291,12 @@ const parseModelFiles = (modelDir) => {
       if (lines[i][0] == '#' || lines[i][0] == '@') {
         continue;
       }
-      const [ geneId, name, alternateName, synonyms, thefunction, ec, catalytic_activity ] = lines[i].split('\t').map(e => e.trim());
+      // thefunction, ec and catalytic_activity are not defined in the new TSV
+      // format and thus set the default value as empty 
+      const thefunction = '';
+      const ec = '';
+      const catalytic_activity = '';
+      const [ geneId, geneENSTID, geneENSPID, geneUniProtID, name, geneEntrezID, alternateName, synonyms] = lines[i].split('\t').map(e => e.trim());
       if (geneId in componentIdDict.gene) { //only keep the ones in the model
         const gene = componentIdDict.gene[geneId];
         Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
