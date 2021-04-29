@@ -570,26 +570,8 @@ const parseModelFiles = (modelDir) => {
 
   // ========================================================================
   // extract information from metabolite annotation file
-
-  const metaboliteAnnoFile = getFile(modelDir, /METABOLITES[.]tsv$/);
-  if (!metaboliteAnnoFile) {
-    console.log("Warning: cannot find metabolite annotation file METABOLITES.tsv in path", modelDir);
-  } else {
-    // TODO use one of the csv parsing lib (sync)
-    lines = fs.readFileSync(metaboliteAnnoFile, 
-              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i][0] == '#' || lines[i][0] == '@') {
-        continue;
-      }
-      const [ metaboliteId, alternateName, synonyms, description, mass, inchi ] = lines[i].split('\t').map(e => e.trim());
-      if (metaboliteId in componentIdDict.compartmentalizedMetabolite) { //only keep the ones in the model
-        // find the unique met associated
-        const umet = uniqueMetDict[componentIdDict.compartmentalizedMetabolite[metaboliteId].name];
-        Object.assign(umet, { alternateName, synonyms, description }); // other props are not in the db design, TODO remove them?
-      }
-    }
-  }
+  // METABOLITES.tsv has been removed for the format, and this file is actually
+  // empty in the old format
 
   // ========================================================================
   // CM-M relationships
