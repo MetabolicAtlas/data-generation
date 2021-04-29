@@ -280,7 +280,7 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(reactionPMID);
 
   // extract information from gene annotation file
-  const geneAnnoFile = getFile(modelDir, /genes[.]tsv$/);
+  const geneAnnoFile = getFile(modelDir, /genes-new[.]tsv$/);
   if (!geneAnnoFile) {
     console.log("Warning: cannot find gene annotation file genes.tsv in path", modelDir);
   } else {
@@ -404,7 +404,7 @@ const parseModelFiles = (modelDir) => {
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
     const externalIdDBComponentRel = [];
-    const filename = `${component}s.tsv`;
+    const filename = `${component}s-new.tsv`;
     const extIDFile = getFile(modelDir, filename);
     const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
 
