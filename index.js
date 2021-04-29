@@ -296,7 +296,7 @@ const parseModelFiles = (modelDir) => {
       const thefunction = '';
       const ec = '';
       const catalytic_activity = '';
-      const [ geneId, geneENSTID, geneENSPID, geneUniProtID, name, geneEntrezID, alternateName, synonyms] = lines[i].split('\t').map(e => e.trim());
+      const [ geneId, geneENSTID, geneENSPID, geneUniProtID, name, geneEntrezID, alternateName, synonyms] = lines[i].split('\t').map(e => trim(e, '"'));
       if (geneId in componentIdDict.gene) { //only keep the ones in the model
         const gene = componentIdDict.gene[geneId];
         Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
