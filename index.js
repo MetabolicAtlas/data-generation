@@ -100,6 +100,7 @@ const reformatReactionObjets = (data) => {
       geneRule: r.gene_reaction_rule,
       reversible: r.lower_bound === -1000,
       ec: r.eccodes,
+      references: r.references,
       subsystems: r.subsystem ? Array.isArray(r.subsystem) ? r.subsystem : [r.subsystem] : [],
     };
   } );
@@ -234,33 +235,32 @@ const parseModelFiles = (modelDir) => {
   // ========================================================================
   // external IDs and annotation
 
-  // extract EC code and PMID from reaction annotation file
+  // extract EC code and PMID from YAML file
+  // console.log(componentIdDict.reaction); //DEBUG
   const reactionPMID = [];
   const PMIDs = [];
-  const reactionAnnoFile = getFile(modelDir, /REACTIONS[.]tsv$/);
-  if (!reactionAnnoFile) {
-    console.log("Warning: cannot find reaction annotation file REACTIONS.tsv in path", modelDir);
-  } else {
-    // TODO use one of the csv parsing lib (sync)
-    lines = fs.readFileSync(reactionAnnoFile, 
-              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i][0] == '#' || lines[i][0] == '@') {
-        continue;
-      }
-      const [ reactionId, ECList, PMIDList ] = lines[i].split('\t').map(e => e.trim());
-      // EC are already provided by the YAML (without the 'EC:' prefix), TODO remove from annotation file?
-      if (reactionId in componentIdDict.reaction && PMIDList) { //only keep the ones in the model
-        PMIDList.split('; ').forEach((pubmedReferenceId) => {
-          reactionPMID.push({ reactionId, pubmedReferenceId });
-          if (!PMIDSset.has(pubmedReferenceId)) {
-            PMIDs.push(pubmedReferenceId);
-            PMIDSset.add(pubmedReferenceId);
+  for (const reactionId in componentIdDict.reaction) {
+    if (reactionId.match('^HMR_')) {
+      const ECList = componentIdDict.reaction[reactionId].ec;
+      const PMIDList = componentIdDict.reaction[reactionId].references;
+      // PMIDList = PMIDList.replace(/PMID:/g, '');
+      // console.log(reactionId, PMIDList);
+      if (PMIDList) {
+        PMIDList.split(';').forEach((pubmedReferenceId) => {
+          if (pubmedReferenceId.match('^PMID')) {
+            pubmedReferenceId = pubmedReferenceId.replace(/PMID:*/g, '');
+            // console.log(pubmedReferenceId);
+            reactionPMID.push({ reactionId, pubmedReferenceId });
+            if (!PMIDSset.has(pubmedReferenceId)) {
+              PMIDs.push(pubmedReferenceId);
+              PMIDSset.add(pubmedReferenceId);
+            }
           }
         });
       }
     }
   }
+  // console.log(PMIDSset);
 
   // create pubmedReferences file
   csvWriter = createCsvWriter({
