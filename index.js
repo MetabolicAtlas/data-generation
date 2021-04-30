@@ -236,15 +236,12 @@ const parseModelFiles = (modelDir) => {
   // external IDs and annotation
 
   // extract EC code and PMID from YAML file
-  // console.log(componentIdDict.reaction); //DEBUG
   const reactionPMID = [];
   const PMIDs = [];
   for (const reactionId in componentIdDict.reaction) {
     if (reactionId.match('^HMR_')) {
       const ECList = componentIdDict.reaction[reactionId].ec;
       const PMIDList = componentIdDict.reaction[reactionId].references;
-      // PMIDList = PMIDList.replace(/PMID:/g, '');
-      // console.log(reactionId, PMIDList);
       if (PMIDList) {
         PMIDList.split(';').forEach((pubmedReferenceId) => {
           if (pubmedReferenceId.match('^PMID')) {
@@ -260,7 +257,6 @@ const parseModelFiles = (modelDir) => {
       }
     }
   }
-  // console.log(PMIDSset);
 
   // create pubmedReferences file
   csvWriter = createCsvWriter({
@@ -453,10 +449,6 @@ const parseModelFiles = (modelDir) => {
           var externalId = contentArr[j];
           externalId = trim(externalId.trim(), '"');
 
-          // DEBUG
-          if (header == "rxnRheaMasterID") {
-            console.log(j, header, externalId);
-          }
           // clean externalId
           if (dbName == 'MA'){
             externalId = externalId.replace(/^MA-/, '');
