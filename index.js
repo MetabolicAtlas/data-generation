@@ -446,41 +446,49 @@ const parseModelFiles = (modelDir) => {
             continue;
           }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
-          var externalId = contentArr[j];
-          externalId = trim(externalId.trim(), '"');
+          var rawExternalId = contentArr[j];
+          rawExternalId = trim(rawExternalId.trim(), '"');
 
-          // clean externalId
+          // clean rawExternalId
           if (dbName == 'MA'){
-            externalId = externalId.replace(/^MA-/, '');
+            rawExternalId = rawExternalId.replace(/^MA-/, '');
           } else if (dbName == 'ChEBI') {
-            externalId = externalId.replace(/^CHEBI:/, '');
-          } else if (dbName == 'Rhea' || dbName == "RheaMaster") {
-            externalId = externalId.replace(/^RHEA:/, '');
-          }
-          const url_prefix = dbnameDict[fcomponent]['url_map'][header];
-          var url = "";
-          if ( url_prefix != "" && externalId != "") {
-            url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
-          }
-          //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
-
-          const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
-
-          let node = null;
-          if (externalDbEntryKey in externalIdDBMap) {
-            node = externalIdDBMap[externalDbEntryKey]; // reuse the node and id
-          } else {
-            node = { id: extNodeIdTracker, dbName, externalId, url };
-            externalIdDBMap[externalDbEntryKey] = node;
-            extNodeIdTracker += 1;
-
-
-            // save the node for externalDBs.csv
-            externalIdNodes.push(node);
+            rawExternalId = rawExternalId.replace(/^CHEBI:/, '');
+          } else if (dbName == 'Rhea' || dbName == 'RheaMaster') {
+            rawExternalId = rawExternalId.replace(/^RHEA:/, '');
           }
 
-          // save the relationships between the node and the current component ID (reaction, gene, etc)
-          externalIdDBComponentRel.push({ id, externalDbId: node.id }); // e.g. geneId, externalDbId
+          if (rawExternalId == '') { //ignore the record whithout any valid externalId
+            continue;
+          }
+          // There might be multiple ids in one externalId item
+          externalIdArr = rawExternalId.split(';').map(e => e.trim());
+
+          for (const externalId of externalIdArr) {
+            const url_prefix = dbnameDict[fcomponent]['url_map'][header];
+            var url = "";
+            if ( url_prefix != '' && externalId != '') {
+              url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
+            }
+            //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
+
+            const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
+
+            let node = null;
+            if (externalDbEntryKey in externalIdDBMap) {
+              node = externalIdDBMap[externalDbEntryKey]; // reuse the node and id
+            } else {
+              node = { id: extNodeIdTracker, dbName, externalId, url };
+              externalIdDBMap[externalDbEntryKey] = node;
+              extNodeIdTracker += 1;
+
+              // save the node for externalDBs.csv
+              externalIdNodes.push(node);
+            }
+
+            // save the relationships between the node and the current component ID (reaction, gene, etc)
+            externalIdDBComponentRel.push({ id, externalDbId: node.id }); // e.g. geneId, externalDbId
+          }
         }
       }
     } else {
