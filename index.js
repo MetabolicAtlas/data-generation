@@ -441,24 +441,21 @@ const parseModelFiles = (modelDir) => {
 
         for (let j = 1; j < numItem; j++) {
           const header = headerArr[j];
-          if (fcomponent == 'metabolite' && j==1){
-            continue;
-          }
           const regexGene = "gene.*ID$";
           const regexRxn = "rxn.*ID$";
           const regexMet = "met.*ID$";
           if ((fcomponent == 'gene' && header.match(regexGene) == null) ||
               (fcomponent == 'reaction' && header.match(regexRxn) == null) ||
-              (fcomponent == 'metabolite' && header.match(regexMet) == null)) {
+              (fcomponent == 'compartmentalizedMetabolite' && header.match(regexMet) == null)) {
             continue;
           }
-          const externalId = contentArr[j];
+          const dbName = dbnameDict[fcomponent]['dbname_map'][header];
+          var externalId = contentArr[j];
           const url_prefix = dbnameDict[fcomponent]['url_map'][header];
           var url = "";
-          if ( url_prefix != '' ) {
+          if ( url_prefix != "" && externalId != "") {
             url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
           }
-          const dbName = dbnameDict[fcomponent]['dbname_map'][header];
           //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
 
           const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
