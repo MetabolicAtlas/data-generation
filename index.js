@@ -1,5 +1,6 @@
 const fs = require('fs'), path = require('path');
 const yaml = require('js-yaml');
+const func = require('./func.js');
 
 const getFile = (dirPath, regexpOrString) => {
   if (!fs.existsSync(dirPath)){
@@ -16,19 +17,6 @@ const getFile = (dirPath, regexpOrString) => {
     }
   }
 };
-
-function trim(x, characters=" \t\w") {
-  var start = 0;
-  while (characters.indexOf(x[start]) >= 0) {
-    start += 1;
-  }
-  var end = x.length - 1;
-  while (characters.indexOf(x[end]) >= 0) {
-    end -= 1;
-  }
-  return x.substr(start, end - start + 1);
-}
-
 
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 let csvWriter = null;
@@ -292,7 +280,7 @@ const parseModelFiles = (modelDir) => {
       const thefunction = '';
       const ec = '';
       const catalytic_activity = '';
-      const [ geneId, geneENSTID, geneENSPID, geneUniProtID, name, geneEntrezID, alternateName, synonyms] = lines[i].split('\t').map(e => trim(e, '"'));
+      const [ geneId, geneENSTID, geneENSPID, geneUniProtID, name, geneEntrezID, alternateName, synonyms] = lines[i].split('\t').map(e => func.trim(e, '"'));
       if (geneId in componentIdDict.gene) { //only keep the ones in the model
         const gene = componentIdDict.gene[geneId];
         Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
@@ -329,7 +317,7 @@ const parseModelFiles = (modelDir) => {
           headerArr = lines[i].split('\t').map(e => e.trim());
           continue;
         } else {
-          contentArr = lines[i].split('\t').map(e => trim(e, '"'));
+          contentArr = lines[i].split('\t').map(e => func.trim(e, '"'));
         }
 
         const id = contentArr[0];
@@ -358,7 +346,7 @@ const parseModelFiles = (modelDir) => {
           }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
           var rawExternalId = contentArr[j];
-          rawExternalId = trim(rawExternalId.trim(), '"');
+          rawExternalId = func.trim(rawExternalId.trim(), '"');
 
           // clean rawExternalId
           if (dbName == 'MA'){
