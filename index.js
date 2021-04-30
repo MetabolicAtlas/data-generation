@@ -444,12 +444,20 @@ const parseModelFiles = (modelDir) => {
           if (fcomponent == 'metabolite' && j==1){
             continue;
           }
-          const regex = "gene.*ID$";
-          if (fcomponent == 'gene' && header.match(regex) == null){
+          const regexGene = "gene.*ID$";
+          const regexRxn = "rxn.*ID$";
+          const regexMet = "met.*ID$";
+          if ((fcomponent == 'gene' && header.match(regexGene) == null) ||
+              (fcomponent == 'reaction' && header.match(regexRxn) == null) ||
+              (fcomponent == 'metabolite' && header.match(regexMet) == null)) {
             continue;
           }
           const externalId = contentArr[j];
-          const url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
+          const url_prefix = dbnameDict[fcomponent]['url_map'][header];
+          var url = "";
+          if ( url_prefix != '' ) {
+            url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
+          }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
           //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
 
