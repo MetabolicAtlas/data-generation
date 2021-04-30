@@ -324,8 +324,8 @@ const parseModelFiles = (modelDir) => {
       'rxnTCDBID': '',
       'spontaneous': '',
       'rxnMAID': '',
-      'rxnRheaID': '',
-      'rxnRheaMasterID': '',
+      'rxnRheaID': 'https://identifiers.org/rhea',
+      'rxnRheaMasterID': 'https://identifiers.org/rhea',
     },
     'dbname_map': {
       'rxnKEGGID': 'KEGG',
@@ -419,7 +419,7 @@ const parseModelFiles = (modelDir) => {
         if (lines[i][0] == '#') {
           continue;
         } else if (i == 0) { /*read the header line*/
-          headerArr = lines[i].split('\t').map(e => trim(e, '"'));
+          headerArr = lines[i].split('\t').map(e => e.trim());
           continue;
         } else {
           contentArr = lines[i].split('\t').map(e => trim(e, '"'));
@@ -451,12 +451,18 @@ const parseModelFiles = (modelDir) => {
           }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
           var externalId = contentArr[j];
+          externalId = trim(externalId.trim(), '"');
+
+          // DEBUG
+          if (header == "rxnRheaMasterID") {
+            console.log(j, header, externalId);
+          }
           // clean externalId
           if (dbName == 'MA'){
             externalId = externalId.replace(/^MA-/, '');
           } else if (dbName == 'ChEBI') {
             externalId = externalId.replace(/^CHEBI:/, '');
-          } else if (dbName == 'Rhea') {
+          } else if (dbName == 'Rhea' || dbName == "RheaMaster") {
             externalId = externalId.replace(/^RHEA:/, '');
           }
           const url_prefix = dbnameDict[fcomponent]['url_map'][header];
