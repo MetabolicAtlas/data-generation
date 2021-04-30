@@ -451,6 +451,14 @@ const parseModelFiles = (modelDir) => {
           }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
           var externalId = contentArr[j];
+          // clean externalId
+          if (dbName == 'MA'){
+            externalId = externalId.replace(/^MA-/, '');
+          } else if (dbName == 'ChEBI') {
+            externalId = externalId.replace(/^CHEBI:/, '');
+          } else if (dbName == 'Rhea') {
+            externalId = externalId.replace(/^RHEA:/, '');
+          }
           const url_prefix = dbnameDict[fcomponent]['url_map'][header];
           var url = "";
           if ( url_prefix != "" && externalId != "") {
