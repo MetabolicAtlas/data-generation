@@ -1,7 +1,6 @@
 const fs = require('fs'), path = require('path');
 const yaml = require('js-yaml');
 const func = require('./func.js');
-const { dbnameDict } = require('./var');
 
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 let csvWriter = null;

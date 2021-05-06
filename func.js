@@ -391,4 +391,3 @@ exports.extractGeneAnnotation = extractGeneAnnotation;
 exports.createComponentExternalDbFile = createComponentExternalDbFile;
 exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
 exports.getUniqueMetabolite = getUniqueMetabolite;
-
