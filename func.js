@@ -175,6 +175,47 @@ const createComponentSVGMapFile = (component, outputPath, svgNodes, modelDir) =>
   csvWriter.writeRecords(svgRels);
 };
 
+const createPMIDFile = (PMIDSset, componentIdDict, outputPath) => {
+  const reactionPMID = [];
+  const PMIDs = [];
+  for (const reactionId in componentIdDict.reaction) {
+    if (reactionId.match('^HMR_')) {
+      const ECList = componentIdDict.reaction[reactionId].ec;
+      const PMIDList = componentIdDict.reaction[reactionId].references;
+      if (PMIDList) {
+        PMIDList.split(';').forEach((pubmedReferenceId) => {
+          if (pubmedReferenceId.match('^PMID')) {
+            pubmedReferenceId = pubmedReferenceId.replace(/PMID:*/g, '');
+            // console.log(pubmedReferenceId);
+            reactionPMID.push({ reactionId, pubmedReferenceId });
+            if (!PMIDSset.has(pubmedReferenceId)) {
+              PMIDs.push(pubmedReferenceId);
+              PMIDSset.add(pubmedReferenceId);
+            }
+          }
+        });
+      }
+    }
+  }
+  // create pubmedReferences file
+  csvWriter = createCsvWriter({
+    path: `${outputPath}pubmedReferences.csv`,
+    header: [{ id: 'id', title: 'id' }],
+  });
+  csvWriter.writeRecords(PMIDs.map(
+    (id) => { return { id }; }
+  ));
+
+  // write reaction pubmed reference file
+  csvWriter = createCsvWriter({
+    path: `${outputPath}reactionPubmedReferences.csv`,
+    header: [{ id: 'reactionId', title: 'reactionId' },
+             { id: 'pubmedReferenceId', title: 'pubmedReferenceId' }],
+  });
+  csvWriter.writeRecords(reactionPMID);
+
+};
+
 exports.getFile = getFile;
 exports.toLabelCase = toLabelCase;
 exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
@@ -187,4 +228,5 @@ exports.reformatReactionObjets = reformatReactionObjets;
 exports.idfyString = idfyString;
 exports.idfyString2 = idfyString2;
 exports.createComponentSVGMapFile = createComponentSVGMapFile;
+exports.createPMIDFile = createPMIDFile;
 

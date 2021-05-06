@@ -77,49 +77,10 @@ const parseModelFiles = (modelDir) => {
   });
   csvWriter.writeRecords(svgNodes);
 
-
   // ========================================================================
   // external IDs and annotation
-
   // extract EC code and PMID from YAML file
-  const reactionPMID = [];
-  const PMIDs = [];
-  for (const reactionId in componentIdDict.reaction) {
-    if (reactionId.match('^HMR_')) {
-      const ECList = componentIdDict.reaction[reactionId].ec;
-      const PMIDList = componentIdDict.reaction[reactionId].references;
-      if (PMIDList) {
-        PMIDList.split(';').forEach((pubmedReferenceId) => {
-          if (pubmedReferenceId.match('^PMID')) {
-            pubmedReferenceId = pubmedReferenceId.replace(/PMID:*/g, '');
-            // console.log(pubmedReferenceId);
-            reactionPMID.push({ reactionId, pubmedReferenceId });
-            if (!PMIDSset.has(pubmedReferenceId)) {
-              PMIDs.push(pubmedReferenceId);
-              PMIDSset.add(pubmedReferenceId);
-            }
-          }
-        });
-      }
-    }
-  }
-
-  // create pubmedReferences file
-  csvWriter = createCsvWriter({
-    path: `${outputPath}pubmedReferences.csv`,
-    header: [{ id: 'id', title: 'id' }],
-  });
-  csvWriter.writeRecords(PMIDs.map(
-    (id) => { return { id }; }
-  ));
-
-  // write reaction pubmed reference file
-  csvWriter = createCsvWriter({
-    path: `${outputPath}reactionPubmedReferences.csv`,
-    header: [{ id: 'reactionId', title: 'reactionId' },
-             { id: 'pubmedReferenceId', title: 'pubmedReferenceId' }],
-  });
-  csvWriter.writeRecords(reactionPMID);
+  func.createPMIDFile(PMIDSset, componentIdDict, outputPath);
 
   // extract information from gene annotation file
   const geneAnnoFile = func.getFile(modelDir, /genes-new[.]tsv$/);
