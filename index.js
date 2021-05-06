@@ -85,7 +85,7 @@ const parseModelFiles = (modelDir) => {
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
   const model = func.toLabelCase(metadataSection.short_name);
-  console.log("model=", model);
+  // console.log("model=", model);
   const version = `V${metadataSection.version.replace(/\./g, '_')}`;
   const isHuman = metadataSection.short_name === 'Human-GEM';
 
