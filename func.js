@@ -125,3 +125,6 @@ exports.reformatGeneObjets = reformatGeneObjets;
 exports.reformatCompartmentObjets = reformatCompartmentObjets;
 exports.reformatCompartmentalizedMetaboliteObjets = reformatCompartmentalizedMetaboliteObjets;
 exports.reformatReactionObjets = reformatReactionObjets;
+exports.idfyString = idfyString;
+exports.idfyString2 = idfyString2;
+

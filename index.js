@@ -5,9 +5,6 @@ const func = require('./func.js');
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 let csvWriter = null;
 
-const idfyString = s => s.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, ''); // for subsystems, compartments etc..
-const idfyString2 = s => s.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_'); // to generate compartmentalizedMetabolite ID from their name
-
 let extNodeIdTracker = 1
 const humanGeneIdSet = new Set();
 const externalIdDBMap = {};
@@ -57,7 +54,7 @@ const parseModelFiles = (modelDir) => {
   componentIdDict.subsystem = {};
   content.reaction.forEach((r) => {
     r.subsystems.forEach((name) => {
-      const id = idfyString(name);
+      const id = func.idfyString(name);
       const subsystemObject = { subsystemId: id, name }; // TODO add 'description' key
       if (!(id in componentIdDict.subsystem)) {
         content.subsystem.push(subsystemObject);
@@ -109,7 +106,7 @@ const parseModelFiles = (modelDir) => {
 
         if (componentName) {
           svgRels.push({
-            [`${component}Id`]: idfyString(componentName),
+            [`${component}Id`]: func.idfyString(componentName),
             svgMapId: mapFilename.split('.')[0],
           });
         }
@@ -346,7 +343,7 @@ const parseModelFiles = (modelDir) => {
   let hm = {}
   const uniqueCompartmentalizedMap = {}
   content.compartmentalizedMetabolite.forEach((m) => {
-    const newID = idfyString2(m.name);
+    const newID = func.idfyString2(m.name);
     if (!(newID in hm)) {
       hm[newID] = m.name;
       uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
@@ -453,7 +450,7 @@ const parseModelFiles = (modelDir) => {
       reactionGeneRecords.push({ reactionId: r.reactionId, geneId });
     });
     r.subsystems.forEach((name) => {
-      reactionSubsystemRecords.push({ reactionId: r.reactionId, subsystemId: idfyString(name) });
+      reactionSubsystemRecords.push({ reactionId: r.reactionId, subsystemId: func.idfyString(name) });
     })
   });
 
