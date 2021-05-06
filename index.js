@@ -83,29 +83,7 @@ const parseModelFiles = (modelDir) => {
   func.createPMIDFile(PMIDSset, componentIdDict, outputPath);
 
   // extract information from gene annotation file
-  const geneAnnoFile = func.getFile(modelDir, /genes-new[.]tsv$/);
-  if (!geneAnnoFile) {
-    console.log("Warning: cannot find gene annotation file genes.tsv in path", modelDir);
-  } else {
-    // TODO use one of the csv parsing lib (sync)
-    lines = fs.readFileSync(geneAnnoFile, 
-              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i][0] == '#' || lines[i][0] == '@') {
-        continue;
-      }
-      // thefunction, ec and catalytic_activity are not defined in the new TSV
-      // format and thus set the default value as empty 
-      const thefunction = '';
-      const ec = '';
-      const catalytic_activity = '';
-      const [ geneId, geneENSTID, geneENSPID, geneUniProtID, name, geneEntrezID, alternateName, synonyms] = lines[i].split('\t').map(e => func.trim(e, '"'));
-      if (geneId in componentIdDict.gene) { //only keep the ones in the model
-        const gene = componentIdDict.gene[geneId];
-        Object.assign(gene, { name, alternateName, synonyms, function: thefunction }); // other props are not in the db design, TODO remove them?
-      }
-    }
-  }
+  func.extractGeneAnnotation(componentIdDict, modelDir);
 
   // extract description subsystem annotation file
   // TODO or remove annotation file
