@@ -134,18 +134,7 @@ const parseModelFiles = (modelDir) => {
   let hm = {}
   const uniqueCompartmentalizedMap = {}
   content.compartmentalizedMetabolite.forEach((m) => {
-    const newID = func.idfyString2(m.name);
-    if (!(newID in hm)) {
-      hm[newID] = m.name;
-      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
-    } else {
-      if (hm[newID] !== m.name) {
-        // console.log('Error duplicated ID:' + newID + '(' + m.name + ') collision with ' + hm[newID]);
-        uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID + '_';
-      } else {
-        uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
-      }
-    }
+    func.getUniqueCompartmentlizedMap(m, hm, uniqueCompartmentalizedMap);
   })
 
   const uniqueMetDict = {};

@@ -341,6 +341,21 @@ const createComponentExternalDbFile = (externalIdNodes, externalIdDBMap, extNode
   return extNodeIdTracker;
 }
 
+const getUniqueCompartmentlizedMap = (m, hm, uniqueCompartmentalizedMap) => {
+  const newID = idfyString2(m.name);
+  if (!(newID in hm)) {
+    hm[newID] = m.name;
+    uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
+  } else {
+    if (hm[newID] !== m.name) {
+      // console.log('Error duplicated ID:' + newID + '(' + m.name + ') collision with ' + hm[newID]);
+      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID + '_';
+    } else {
+      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
+    }
+  }
+}
+
 exports.getFile = getFile;
 exports.toLabelCase = toLabelCase;
 exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
@@ -356,4 +371,5 @@ exports.createComponentSVGMapFile = createComponentSVGMapFile;
 exports.createPMIDFile = createPMIDFile;
 exports.extractGeneAnnotation = extractGeneAnnotation;
 exports.createComponentExternalDbFile = createComponentExternalDbFile;
+exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
 
