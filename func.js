@@ -1,3 +1,4 @@
+const fs = require('fs'), path = require('path');
 module.exports = {
   trim: function (x, characters=" \t\w") {
     var start = 0;
@@ -22,5 +23,21 @@ module.exports = {
       rawExternalId = rawExternalId.replace(/^RHEA:/, '');
     }
     return rawExternalId;
+  },
+
+  getFile: function(dirPath, regexpOrString) {
+    if (!fs.existsSync(dirPath)){
+      console.log("no dir ", dirPath);
+      return;
+    }
+
+    const files = fs.readdirSync(dirPath);
+    for(let i = 0; i < files.length; i++) {
+      const filePath = path.join(dirPath, files[i]);
+      const stat = fs.lstatSync(filePath);
+      if (!stat.isDirectory() && (regexpOrString === files[i] || (regexpOrString.test && regexpOrString.test(files[i])))) {
+        return filePath;
+      }
+    }
   },
 }

@@ -2,22 +2,6 @@ const fs = require('fs'), path = require('path');
 const yaml = require('js-yaml');
 const func = require('./func.js');
 
-const getFile = (dirPath, regexpOrString) => {
-  if (!fs.existsSync(dirPath)){
-    console.log("no dir ", dirPath);
-    return;
-  }
-
-  const files = fs.readdirSync(dirPath);
-  for(let i = 0; i < files.length; i++) {
-    const filePath = path.join(dirPath, files[i]);
-    const stat = fs.lstatSync(filePath);
-    if (!stat.isDirectory() && (regexpOrString === files[i] || (regexpOrString.test && regexpOrString.test(files[i])))) {
-      return filePath;
-    }
-  }
-};
-
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 let csvWriter = null;
 
@@ -103,7 +87,7 @@ let dropIndexes = false;
 
 const parseModelFiles = (modelDir) => {
   // find the yaml in the folder
-  yamlFile = getFile(modelDir, /.*[.](yaml|yml)$/);
+  yamlFile = func.getFile(modelDir, /.*[.](yaml|yml)$/);
   if (!yamlFile) {
     throw new Error("yaml file not found in path ", modelDir);
   }
@@ -156,7 +140,7 @@ const parseModelFiles = (modelDir) => {
   const svgNodes = [];
   ['compartment', 'subsystem', 'custom'].forEach((component) => {
     const filename = `${component}SVG.tsv.plain`;
-    const mappingFile = getFile(modelDir, filename);
+    const mappingFile = func.getFile(modelDir, filename);
     const isCustom = component === 'custom';
 
     let svgRels = [];
@@ -264,7 +248,7 @@ const parseModelFiles = (modelDir) => {
   csvWriter.writeRecords(reactionPMID);
 
   // extract information from gene annotation file
-  const geneAnnoFile = getFile(modelDir, /genes-new[.]tsv$/);
+  const geneAnnoFile = func.getFile(modelDir, /genes-new[.]tsv$/);
   if (!geneAnnoFile) {
     console.log("Warning: cannot find gene annotation file genes.tsv in path", modelDir);
   } else {
@@ -300,7 +284,7 @@ const parseModelFiles = (modelDir) => {
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
     const externalIdDBComponentRel = [];
     const filename = `${component}s-new.tsv`;
-    const extIDFile = getFile(modelDir, filename);
+    const extIDFile = func.getFile(modelDir, filename);
     const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
 
     if (extIDFile) {
@@ -345,8 +329,6 @@ const parseModelFiles = (modelDir) => {
             continue;
           }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
-          // var rawExternalId = contentArr[j];
-          // rawExternalId = func.trim(rawExternalId.trim(), '"');
           const rawExternalId = func.cleanExternalId(contentArr[j], dbName);
           if (rawExternalId == '') { //ignore the record whithout any valid externalId
             continue;
@@ -360,7 +342,6 @@ const parseModelFiles = (modelDir) => {
             if ( url_prefix != '' && externalId != '') {
               url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
             }
-            //const [ id, dbName, externalId, url ] = lines[i].split('\t').map(e => e.trim());
 
             const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
 
