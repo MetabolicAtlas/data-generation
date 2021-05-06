@@ -8,9 +8,6 @@ let csvWriter = null;
 const idfyString = s => s.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, ''); // for subsystems, compartments etc..
 const idfyString2 = s => s.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_'); // to generate compartmentalizedMetabolite ID from their name
 
-const toLabelCase = (modelName) =>
-  modelName.replace('-', ' ').split(/\s/g).map(word => `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`).join('');
-
 const mergedObjects = data => data.reduce((acc, item) => {
   const [key, value] = Object.entries(item)[0];
     return {
@@ -87,7 +84,8 @@ const parseModelFiles = (modelDir) => {
 
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
-  const model = toLabelCase(metadataSection.short_name);
+  const model = func.toLabelCase(metadataSection.short_name);
+  console.log("model=", model);
   const version = `V${metadataSection.version.replace(/\./g, '_')}`;
   const isHuman = metadataSection.short_name === 'Human-GEM';
 

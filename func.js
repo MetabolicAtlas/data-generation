@@ -49,4 +49,8 @@ module.exports = {
     return idList;
   },
 
+  toLabelCase: function (modelName) {
+    return modelName.replace('-', ' ').split(/\s/g).map(word => `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`).join('');
+  },
+
 };
