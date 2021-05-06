@@ -1,5 +1,6 @@
 const fs = require('fs'), path = require('path');
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+const { dbnameDict } = require('./var');
 
 const trim = (x, characters=" \t\w") => {
   var start = 0;
@@ -242,6 +243,104 @@ const extractGeneAnnotation = (componentIdDict, modelDir) => {
   }
 }
 
+const createComponentExternalDbFile = (externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir, outputPath) => {
+  const externalIdDBComponentRel = [];
+  const filename = `${component}s-new.tsv`;
+  const extIDFile = getFile(modelDir, filename);
+  const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
+
+  if (extIDFile) {
+    // TODO use one of the csv parsing lib (sync)
+    lines = fs.readFileSync(extIDFile, 
+              { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
+
+    var headerArr = [];
+    var contentArr = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i][0] == '#') {
+        continue;
+      } else if (i == 0) { /*read the header line*/
+        headerArr = lines[i].split('\t').map(e => e.trim());
+        continue;
+      } else {
+        contentArr = lines[i].split('\t').map(e => trim(e, '"'));
+      }
+
+      const id = contentArr[0];
+      if (!(id in componentIdDict[fcomponent])) { //only keep the ones in the model
+        console.log('Warning: id ' + id + ' not in '  + ' componentIdDict[' + fcomponent+']');
+        continue;
+      }
+
+      if (fcomponent == "gene"){ /*add two more items Ensembl and Protein Atlas which is not included in the new format*/
+        headerArr.push('geneEnsemblID');
+        headerArr.push('geneProteinAtlasID');
+        contentArr.push(id); /*For Ensembl, externalId is equal to id*/
+        contentArr.push(id); /*For Protein Atlas, externalId is equal to id*/  
+      }
+      const numItem = contentArr.length;
+
+      for (let j = 1; j < numItem; j++) {
+        const header = headerArr[j];
+        const regexGene = "gene.*ID$";
+        const regexRxn = "rxn.*ID$";
+        const regexMet = "met.*ID$";
+        if ((fcomponent == 'gene' && header.match(regexGene) == null) ||
+            (fcomponent == 'reaction' && header.match(regexRxn) == null) ||
+            (fcomponent == 'compartmentalizedMetabolite' && header.match(regexMet) == null)) {
+          continue;
+        }
+        const dbName = dbnameDict[fcomponent]['dbname_map'][header];
+        const rawExternalId = cleanExternalId(contentArr[j], dbName);
+        if (rawExternalId == '') { //ignore the record whithout any valid externalId
+          continue;
+        }
+        // There might be multiple ids in one externalId item
+        externalIdArr = rawExternalId.split(';').map(e => e.trim());
+
+        for (var externalId of externalIdArr) {
+          const url_prefix = dbnameDict[fcomponent]['url_map'][header];
+          var url = "";
+          if ( url_prefix != '' && externalId != '') {
+            url = dbnameDict[fcomponent]['url_map'][header] + ':' + externalId;
+          }
+
+          const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
+          externalId = dbName === 'ChEBI' ? 'CHEBI:'+externalId : externalId;
+
+          let node = null;
+          if (externalDbEntryKey in externalIdDBMap) {
+            node = externalIdDBMap[externalDbEntryKey]; // reuse the node and id
+          } else {
+            node = { id: extNodeIdTracker, dbName, externalId, url };
+            externalIdDBMap[externalDbEntryKey] = node;
+            extNodeIdTracker += 1;
+
+            // save the node for externalDBs.csv
+            externalIdNodes.push(node);
+          }
+
+          // save the relationships between the node and the current component ID (reaction, gene, etc)
+          externalIdDBComponentRel.push({ id, externalDbId: node.id }); // e.g. geneId, externalDbId
+        }
+      }
+    }
+  } else {
+    console.log(`Warning: cannot find external ID file ${filename} in path`, modelDir);
+  }
+
+  // write the associated file
+  csvWriter = createCsvWriter({
+    path: `${outputPath}${fcomponent}ExternalDbs.csv`,
+    header: [{ id: `${fcomponent}Id`, title: `${fcomponent}Id` },
+              { id: 'externalDbId', title: 'externalDbId' }],
+  });
+  csvWriter.writeRecords(externalIdDBComponentRel.map(
+    (e) => { return { [`${fcomponent}Id`]: e.id, externalDbId: e.externalDbId }; }
+  ));
+  return extNodeIdTracker;
+}
+
 exports.getFile = getFile;
 exports.toLabelCase = toLabelCase;
 exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
@@ -256,4 +355,5 @@ exports.idfyString2 = idfyString2;
 exports.createComponentSVGMapFile = createComponentSVGMapFile;
 exports.createPMIDFile = createPMIDFile;
 exports.extractGeneAnnotation = extractGeneAnnotation;
+exports.createComponentExternalDbFile = createComponentExternalDbFile;
 
