@@ -140,21 +140,7 @@ const parseModelFiles = (modelDir) => {
   const uniqueMetDict = {};
   const uniqueMetabolites = [];
   content.compartmentalizedMetabolite.forEach((m) => {
-    const newID = uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId];
-    if (!(m.name in uniqueMetDict)) {
-      const uMet = {
-        metaboliteId: newID,
-        name: m.name,
-        alternateName: m.alternateName,
-        synonyms: m.synonyms,
-        description: m.description,
-        formula: m.formula,
-        charge: m.charge,
-        isCurrency: m.isCurrency,
-      };
-      uniqueMetabolites.push(uMet);
-      uniqueMetDict[uMet.name] = uMet;
-    }
+    func.getUniqueMetabolite(m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites);
   })
 
   // create compartmentalizedMetabolite file

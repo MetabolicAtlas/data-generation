@@ -356,6 +356,24 @@ const getUniqueCompartmentlizedMap = (m, hm, uniqueCompartmentalizedMap) => {
   }
 }
 
+const getUniqueMetabolite = (m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites) => {
+  const newID = uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId];
+  if (!(m.name in uniqueMetDict)) {
+    const uMet = {
+      metaboliteId: newID,
+      name: m.name,
+      alternateName: m.alternateName,
+      synonyms: m.synonyms,
+      description: m.description,
+      formula: m.formula,
+      charge: m.charge,
+      isCurrency: m.isCurrency,
+    };
+    uniqueMetabolites.push(uMet);
+    uniqueMetDict[uMet.name] = uMet;
+  }
+}
+
 exports.getFile = getFile;
 exports.toLabelCase = toLabelCase;
 exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
@@ -372,4 +390,5 @@ exports.createPMIDFile = createPMIDFile;
 exports.extractGeneAnnotation = extractGeneAnnotation;
 exports.createComponentExternalDbFile = createComponentExternalDbFile;
 exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
+exports.getUniqueMetabolite = getUniqueMetabolite;
 
