@@ -345,18 +345,9 @@ const parseModelFiles = (modelDir) => {
             continue;
           }
           const dbName = dbnameDict[fcomponent]['dbname_map'][header];
-          var rawExternalId = contentArr[j];
-          rawExternalId = func.trim(rawExternalId.trim(), '"');
-
-          // clean rawExternalId
-          if (dbName == 'MA'){
-            rawExternalId = rawExternalId.replace(/^MA-/, '');
-          } else if (dbName == 'ChEBI') {
-            rawExternalId = rawExternalId.replace(/^CHEBI:/, '');
-          } else if (dbName == 'Rhea' || dbName == 'RheaMaster') {
-            rawExternalId = rawExternalId.replace(/^RHEA:/, '');
-          }
-
+          // var rawExternalId = contentArr[j];
+          // rawExternalId = func.trim(rawExternalId.trim(), '"');
+          const rawExternalId = func.cleanExternalId(contentArr[j], dbName);
           if (rawExternalId == '') { //ignore the record whithout any valid externalId
             continue;
           }

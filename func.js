@@ -11,4 +11,16 @@ module.exports = {
     return x.substr(start, end - start + 1);
   },
 
+  cleanExternalId: function(rawExternalId, dbName) {
+    // clean rawExternalId
+    rawExternalId = this.trim(rawExternalId.trim(), '"');
+    if (dbName == 'MA'){
+      rawExternalId = rawExternalId.replace(/^MA-/, '');
+    } else if (dbName == 'ChEBI') {
+      rawExternalId = rawExternalId.replace(/^CHEBI:/, '');
+    } else if (dbName == 'Rhea' || dbName == 'RheaMaster') {
+      rawExternalId = rawExternalId.replace(/^RHEA:/, '');
+    }
+    return rawExternalId;
+  },
 }
