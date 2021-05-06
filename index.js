@@ -8,66 +8,6 @@ let csvWriter = null;
 const idfyString = s => s.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/, ''); // for subsystems, compartments etc..
 const idfyString2 = s => s.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_'); // to generate compartmentalizedMetabolite ID from their name
 
-const mergedObjects = data => data.reduce((acc, item) => {
-  const [key, value] = Object.entries(item)[0];
-    return {
-    ...acc,
-        [key]: value,
-    };
-}, {});
-
-
-const reformatCompartmentObjets = (data) => {
-  return data.map((c) => {
-    name = Object.values(c)[0];
-    return { compartmentId: idfyString(name), name, letterCode: Object.keys(c)[0] };
-  });
-};
-
-const reformatGeneObjets = (data) => {
-  return data.map((g) => {
-    id = Object.values(g[0])[0];
-    return { geneId: id, name: '', alternateName: '', synonyms: '', function: '' };
-  });
-};
-
-const reformatCompartmentalizedMetaboliteObjets = (data) => {
-  return data.map((m) => {
-    m = mergedObjects(m);
-    return {
-      compartmentalizedMetaboliteId: m.id,
-      name: m.name,
-      alternateName: '',
-      synonyms: '',
-      description: '',
-      formula: m.formula,
-      charge: m.charge,
-      isCurrency: false,
-      compartment: m.compartment,
-    };
-  });
-};
-
-const reformatReactionObjets = (data) => {
-  return data.map((r) => {
-    // reactionId,name,reversible,lowerBound,upperBound,geneRule,ec
-    r = mergedObjects(r);
-    r.metabolites = mergedObjects(r.metabolites);
-    return {
-      reactionId: r.id,
-      name: r.name,
-      metabolites: r.metabolites,
-      lowerBound: r.lower_bound,
-      upperBound: r.upper_bound,
-      geneRule: r.gene_reaction_rule,
-      reversible: r.lower_bound === -1000,
-      ec: r.eccodes,
-      references: r.references,
-      subsystems: r.subsystem ? Array.isArray(r.subsystem) ? r.subsystem : [r.subsystem] : [],
-    };
-  } );
-};
-
 let extNodeIdTracker = 1
 const humanGeneIdSet = new Set();
 const externalIdDBMap = {};
@@ -93,10 +33,10 @@ const parseModelFiles = (modelDir) => {
   const outputPath = `./data/${prefix}.`;
 
   content = { // reformat object as proper key:value objects, rename/add/remove keys
-    compartmentalizedMetabolite: reformatCompartmentalizedMetaboliteObjets(metabolites.metabolites),
-    reaction: reformatReactionObjets(reactions.reactions),
-    gene: reformatGeneObjets(genes.genes),
-    compartment: reformatCompartmentObjets(compartments.compartments),
+    compartmentalizedMetabolite: func.reformatCompartmentalizedMetaboliteObjets(metabolites.metabolites),
+    reaction: func.reformatReactionObjets(reactions.reactions),
+    gene: func.reformatGeneObjets(genes.genes),
+    compartment: func.reformatCompartmentObjets(compartments.compartments),
   }
 
   const componentIdDict = {}; // store for each type of component the key  Id <-> element
