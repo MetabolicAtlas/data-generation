@@ -327,7 +327,7 @@ const parseModelFiles = (modelDir) => {
           // There might be multiple ids in one externalId item
           externalIdArr = rawExternalId.split(';').map(e => e.trim());
 
-          for (const externalId of externalIdArr) {
+          for (var externalId of externalIdArr) {
             const url_prefix = dbnameDict[fcomponent]['url_map'][header];
             var url = "";
             if ( url_prefix != '' && externalId != '') {
@@ -335,6 +335,7 @@ const parseModelFiles = (modelDir) => {
             }
 
             const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
+            externalId = dbName === 'ChEBI' ? 'CHEBI:'+externalId : externalId;
 
             let node = null;
             if (externalDbEntryKey in externalIdDBMap) {
