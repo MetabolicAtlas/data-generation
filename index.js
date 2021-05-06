@@ -67,61 +67,7 @@ const parseModelFiles = (modelDir) => {
   // SVG mapping file
   const svgNodes = [];
   ['compartment', 'subsystem', 'custom'].forEach((component) => {
-    const filename = `${component}SVG.tsv.plain`;
-    const mappingFile = func.getFile(modelDir, filename);
-    const isCustom = component === 'custom';
-
-    let svgRels = [];
-    if (mappingFile) {
-      let lines = fs.readFileSync(mappingFile, 
-            { encoding: 'utf8', flag: 'r' }).split('\n').filter(Boolean);
-      const filenameSet = new Set(); // check uniqness of values in the file
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i][0] == '#' || lines[i][0] == '@') {
-          continue;
-        }
-
-        let componentName, mapName, mapFilename;
-
-        const columns = lines[i].split('\t').map(e => e.trim());
-        if (isCustom) {
-          [ mapName, mapFilename ] = columns;
-        } else {
-          [ componentName, mapName, mapFilename ] = columns;
-        }
-
-        if (componentName && !content[component].map(e => e.name).includes(componentName)) {
-          throw new Error(`${component} "${componentName}" does not exist in the model "${metadataSection.short_name}"`);
-        }
-
-        if (filenameSet.has(mapFilename)) {
-          throw new Error(`map ${mapFilename} can only be linked to one ${component} in the model "${metadataSection.short_name}"`);
-        }
-        filenameSet.add(mapFilename)
-
-        if (!/^[a-z0-9_]+[.]svg$/.test(mapFilename)) {
-          throw new Error(`map "${mapFilename}" referenced by ${metadataSection.short_name}/${filename} is invalid`);
-        }
-        svgNodes.push({ id: mapFilename.split('.')[0], filename: mapFilename, customName: mapName });
-
-        if (componentName) {
-          svgRels.push({
-            [`${component}Id`]: func.idfyString(componentName),
-            svgMapId: mapFilename.split('.')[0],
-          });
-        }
-      }
-    } else {
-      console.log(`Warning: cannot find mappingfile ${filename} in path`, modelDir);
-    }
-
-    // write the associated file
-    csvWriter = createCsvWriter({
-      path: `${outputPath}${component}SvgMaps.csv`,
-      header: [{ id: `${component}Id`, title: `${component}Id` },
-               { id: 'svgMapId', title: 'svgMapId' }],
-    });
-    csvWriter.writeRecords(svgRels);
+    func.createComponentSVGMapFile(component, outputPath, svgNodes, modelDir);
   });
 
   // write svgMaps file
