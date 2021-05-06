@@ -40,4 +40,13 @@ module.exports = {
       }
     }
   },
-}
+
+  getGeneIdsFromGeneRule: function (geneRule) {
+    let idList = [];
+    if (geneRule) {
+      idList = geneRule.split(/\s+and\s+|\s+or\s+/).filter(e => e);
+    }
+    return idList;
+  },
+
+};

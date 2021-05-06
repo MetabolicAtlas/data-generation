@@ -19,13 +19,6 @@ const mergedObjects = data => data.reduce((acc, item) => {
     };
 }, {});
 
-const getGeneIdsFromGeneRule = (geneRule) => {
-  let idList = [];
-  if (geneRule) {
-    idList = geneRule.split(/\s+and\s+|\s+or\s+/).filter(e => e);
-  }
-  return idList;
-}
 
 const reformatCompartmentObjets = (data) => {
   return data.map((c) => {
@@ -517,7 +510,7 @@ const parseModelFiles = (modelDir) => {
         reactionProductRecords.push({ reactionId: r.reactionId, compartmentalizedMetaboliteId, stoichiometry });
       }
     });
-    getGeneIdsFromGeneRule(r.geneRule).forEach((geneId) => {
+    func.getGeneIdsFromGeneRule(r.geneRule).forEach((geneId) => {
       reactionGeneRecords.push({ reactionId: r.reactionId, geneId });
     });
     r.subsystems.forEach((name) => {
