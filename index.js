@@ -269,8 +269,8 @@ try {
   return;
 }
 
-if (!fs.existsSync('./data')){
-  fs.mkdirSync('./data');
+if (!fs.existsSync(`${outDir}`)){
+  fs.mkdirSync(`${outDir}`);
 }
 
 try {
@@ -293,7 +293,6 @@ try {
 }
 
 // write cyper intructions to file
-// const cyperFile = `${outDir}/import.cypher`;
 fs.writeFileSync(`${outDir}/import.cypher`, instructions.join('\n'), 'utf8');
 
   // ========================================================================
@@ -311,6 +310,6 @@ if (!fs.existsSync(`${inputDir}/hpaRnaFull.json`)) {
   });
 
   const json_rna = JSON.stringify(hpaRnaExpressionJson);
-  fs.writeFileSync('./data/hpaRna.json', json_rna);
+  fs.writeFileSync(`${outDir}/hpaRna.json`, json_rna);
 }
 
