@@ -1,5 +1,4 @@
 const fs = require('fs'), path = require('path');
-const yaml = require('js-yaml');
 const parser = require('./parser.js');
 const utils  = require('./utils.js');
 const writer = require('./writer.js');
@@ -23,12 +22,7 @@ const parseModelFiles = (modelDir) => {
     throw new Error("yaml file not found in path ", modelDir);
   }
 
-  const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
-  const metadataSection = metadata.metaData || metadata.metadata;
-  const model = utils.toLabelCase(metadataSection.short_name);
-  // console.log("model=", model);
-  const version = `V${metadataSection.version.replace(/\./g, '_')}`;
-  const isHuman = metadataSection.short_name === 'Human-GEM';
+  const [metadata, metabolites, reactions, genes, compartments, metadataSection, model, version, isHuman] = parser.extractInfoFromYaml(yamlFile);
 
   prefix = `${model}${version}`;
   outputPath = `${outDir}/${prefix}.`;

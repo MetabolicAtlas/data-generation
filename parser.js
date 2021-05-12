@@ -1,8 +1,17 @@
+const yaml = require('js-yaml');
 const fs = require('fs'), path = require('path');
 const { dbnameDict } = require('./var.js');
 const utils = require('./utils.js');
 const writer = require('./writer.js');
 
+const extractInfoFromYaml = (yamlFile) => {
+  const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
+  const metadataSection = metadata.metaData || metadata.metadata;
+  const model = utils.toLabelCase(metadataSection.short_name);
+  const version = `V${metadataSection.version.replace(/\./g, '_')}`;
+  const isHuman = metadataSection.short_name === 'Human-GEM';
+  return [metadata, metabolites, reactions, genes, compartments, metadataSection, model, version, isHuman];
+}
 
 const createComponentSVGMapFile = (component, outputPath, svgNodes, modelDir) => {
   const filename = `${component}SVG.tsv.plain`;
@@ -204,6 +213,8 @@ const createComponentExternalDbFile = (externalIdNodes, externalIdDBMap, extNode
   return extNodeIdTracker;
 }
 
+
+exports.extractInfoFromYaml = extractInfoFromYaml;
 exports.createComponentSVGMapFile = createComponentSVGMapFile;
 exports.createPMIDFile = createPMIDFile;
 exports.extractGeneAnnotation = extractGeneAnnotation;
