@@ -209,8 +209,10 @@ const getComponentExternalDb = (externalIdNodes, externalIdDBMap, extNodeIdTrack
 }
 
 
-exports.getInfoFromYaml = getInfoFromYaml;
-exports.getComponentSvgRel = getComponentSvgRel;
-exports.getPMIDs = getPMIDs;
-exports.getGeneAnnotation = getGeneAnnotation;
-exports.getComponentExternalDb = getComponentExternalDb;
+module.exports = {
+  getInfoFromYaml,
+  getComponentSvgRel,
+  getPMIDs,
+  getGeneAnnotation,
+  getComponentExternalDb,
+}

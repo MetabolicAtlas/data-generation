@@ -152,5 +152,8 @@ const getRemainCypherInstructions = (instructions) => {
   });
   return instructions;
 }
-exports.getModelCypherInstructions = getModelCypherInstructions;
-exports.getRemainCypherInstructions = getRemainCypherInstructions;
+
+module.exports = {
+  getModelCypherInstructions,
+  getRemainCypherInstructions,
+};

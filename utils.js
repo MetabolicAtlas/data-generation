@@ -63,7 +63,7 @@ const reformatCompartmentObjets = (data) => {
     name = Object.values(c)[0];
     return { compartmentId: idfyString(name), name, letterCode: Object.keys(c)[0] };
   });
-};
+}
 
 const reformatGeneObjets = (data) => {
   return data.map((g) => {
@@ -87,7 +87,7 @@ const reformatCompartmentalizedMetaboliteObjets = (data) => {
       compartment: m.compartment,
     };
   });
-};
+}
 
 const reformatReactionObjets = (data) => {
   return data.map((r) => {
@@ -107,7 +107,7 @@ const reformatReactionObjets = (data) => {
       subsystems: r.subsystem ? Array.isArray(r.subsystem) ? r.subsystem : [r.subsystem] : [],
     };
   } );
-};
+}
 
 const getReactionRel = (content) => {
   const reactionReactantRecords = [];
@@ -204,19 +204,21 @@ const getComponentIdDict = (content, isHuman) => {
   return componentIdDict;
 }
 
+module.exports = {
+  getFile,
+  toLabelCase,
+  trim,
+  cleanExternalId,
+  reformatGeneObjets,
+  reformatCompartmentObjets,
+  reformatCompartmentalizedMetaboliteObjets,
+  reformatReactionObjets,
+  idfyString,
+  idfyString2,
+  getReactionRel,
+  getGeneIdsFromGeneRule,
+  getUniqueCompartmentlizedMap,
+  getUniqueMetabolite,
+  getComponentIdDict,
+};
 
-exports.getFile = getFile;
-exports.toLabelCase = toLabelCase;
-exports.trim = trim;
-exports.cleanExternalId = cleanExternalId;
-exports.reformatGeneObjets = reformatGeneObjets;
-exports.reformatCompartmentObjets = reformatCompartmentObjets;
-exports.reformatCompartmentalizedMetaboliteObjets = reformatCompartmentalizedMetaboliteObjets;
-exports.reformatReactionObjets = reformatReactionObjets;
-exports.idfyString = idfyString;
-exports.idfyString2 = idfyString2;
-exports.getReactionRel = getReactionRel;
-exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
-exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
-exports.getUniqueMetabolite = getUniqueMetabolite;
-exports.getComponentIdDict = getComponentIdDict;

@@ -193,20 +193,23 @@ const writeHpaRnaJson = (humanGeneIdSet, inputDir, outDir) => {
     fs.writeFileSync(`${outDir}/hpaRna.json`, json_rna);
   }
 }
-exports.writeComponentSvgCSV = writeComponentSvgCSV;
-exports.writePMIDCSV = writePMIDCSV;
-exports.writeReactionPMIDCSV = writeReactionPMIDCSV;
-exports.writeComponentExternalDbCSV = writeComponentExternalDbCSV;
-exports.writeSvgCSV = writeSvgCSV;
-exports.writeExternalDbCSV = writeExternalDbCSV;
-exports.writeMetaboliteCompartmentCSV = writeMetaboliteCompartmentCSV;
-exports.writeMetaboliteCSV = writeMetaboliteCSV;
-exports.writeMetaboliteMetaboliteRelCSV = writeMetaboliteMetaboliteRelCSV;
-exports.writeRRCSV = writeRRCSV;
-exports.writeRPCSV = writeRPCSV;
-exports.writeRGCSV = writeRGCSV;
-exports.writeRSCSV = writeRSCSV;
-exports.writeComponentCSV = writeComponentCSV;
-exports.writeComponentStateCSV = writeComponentStateCSV;
-exports.writeCypherFile = writeCypherFile;
-exports.writeHpaRnaJson = writeHpaRnaJson;
+
+module.exports = {
+  writeComponentSvgCSV,
+  writePMIDCSV,
+  writeReactionPMIDCSV,
+  writeComponentExternalDbCSV,
+  writeSvgCSV,
+  writeExternalDbCSV,
+  writeMetaboliteCompartmentCSV,
+  writeMetaboliteCSV,
+  writeMetaboliteMetaboliteRelCSV,
+  writeRRCSV,
+  writeRPCSV,
+  writeRGCSV,
+  writeRSCSV,
+  writeComponentCSV,
+  writeComponentStateCSV,
+  writeCypherFile,
+  writeHpaRnaJson,
+}

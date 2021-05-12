@@ -90,4 +90,6 @@ const dbnameDict = {
   },
 };
 
-exports.dbnameDict = dbnameDict;
+module.exports = {
+  dbnameDict,
+};
