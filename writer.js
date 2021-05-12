@@ -13,6 +13,7 @@ const writeComponentSvgCSV = (svgRels, outputPath, component) => {
 }
 
 const writePMIDCSV = (PMIDs, outputPath) => {
+  // write pubmedReferences file
   csvWriter = createCsvWriter({
     path: `${outputPath}pubmedReferences.csv`,
     header: [{ id: 'id', title: 'id' }],

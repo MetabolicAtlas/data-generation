@@ -22,7 +22,7 @@ const parseModelFiles = (modelDir) => {
     throw new Error("yaml file not found in path ", modelDir);
   }
 
-  const [metadata, metabolites, reactions, genes, compartments, metadataSection, model, version, isHuman] = parser.extractInfoFromYaml(yamlFile);
+  const [metadata, metabolites, reactions, genes, compartments, metadataSection, model, version, isHuman] = parser.getInfoFromYaml(yamlFile);
 
   prefix = `${model}${version}`;
   outputPath = `${outDir}/${prefix}.`;
@@ -40,7 +40,8 @@ const parseModelFiles = (modelDir) => {
   // SVG mapping file
   const svgNodes = [];
   ['compartment', 'subsystem', 'custom'].forEach((component) => {
-    parser.createComponentSVGMapFile(component, outputPath, svgNodes, modelDir);
+    const svgRels = parser.getComponentSvgRel(component, svgNodes, modelDir);
+    writer.writeComponentSvgCSV(svgRels, outputPath, component);
   });
 
   // write svgMaps file
@@ -48,11 +49,15 @@ const parseModelFiles = (modelDir) => {
 
   // ========================================================================
   // external IDs and annotation
-  // extract EC code and PMID from YAML file
-  parser.createPMIDFile(PMIDSset, componentIdDict, outputPath);
+  // ========================================================================
+  const [PMIDs, reactionPMID] = parser.getPMIDs(PMIDSset, componentIdDict);
+  // write pubmedReferences file
+  writer.writePMIDCSV(PMIDs, outputPath);
+  // write reaction pubmed reference file
+  writer.writeReactionPMIDCSV(reactionPMID, outputPath);
 
   // extract information from gene annotation file
-  parser.extractGeneAnnotation(componentIdDict, modelDir);
+  parser.getGeneAnnotation(componentIdDict, modelDir);
 
   // extract description subsystem annotation file
   // TODO or remove annotation file
@@ -62,8 +67,11 @@ const parseModelFiles = (modelDir) => {
   const externalIdNodes = [];
 
   ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
-    extNodeIdTracker = parser.createComponentExternalDbFile(externalIdNodes, externalIdDBMap,
-      extNodeIdTracker, component, componentIdDict, modelDir, outputPath);
+    let fcomponent = "";
+    let externalIdDBComponentRel = [];
+    [extNodeIdTracker, fcomponent, externalIdDBComponentRel ] = parser.getComponentExternalDb(
+      externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir);
+    writer.writeComponentExternalDbCSV(externalIdDBComponentRel, outputPath, fcomponent);
   });
 
   // write the externalDbs file

@@ -1,10 +1,9 @@
 const yaml = require('js-yaml');
 const fs = require('fs'), path = require('path');
 const utils = require('./utils.js');
-const writer = require('./writer.js');
 const { dbnameDict } = require('./var.js');
 
-const extractInfoFromYaml = (yamlFile) => {
+const getInfoFromYaml = (yamlFile) => {
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
   const model = utils.toLabelCase(metadataSection.short_name);
@@ -13,7 +12,7 @@ const extractInfoFromYaml = (yamlFile) => {
   return [metadata, metabolites, reactions, genes, compartments, metadataSection, model, version, isHuman];
 }
 
-const createComponentSVGMapFile = (component, outputPath, svgNodes, modelDir) => {
+const getComponentSvgRel = (component, svgNodes, modelDir) => {
   const filename = `${component}SVG.tsv.plain`;
   const mappingFile = utils.getFile(modelDir, filename);
   const isCustom = component === 'custom';
@@ -62,11 +61,10 @@ const createComponentSVGMapFile = (component, outputPath, svgNodes, modelDir) =>
     console.log(`Warning: cannot find mappingfile ${filename} in path`, modelDir);
   }
 
-  // write the associated file
-  writer.writeComponentSvgCSV(svgRels, outputPath, component);
+  return svgRels;
 };
 
-const createPMIDFile = (PMIDSset, componentIdDict, outputPath) => {
+const getPMIDs = (PMIDSset, componentIdDict) => {
   const reactionPMID = [];
   const PMIDs = [];
   for (const reactionId in componentIdDict.reaction) {
@@ -88,15 +86,10 @@ const createPMIDFile = (PMIDSset, componentIdDict, outputPath) => {
       }
     }
   }
-  // create pubmedReferences file
-  writer.writePMIDCSV(PMIDs, outputPath);
-
-  // write reaction pubmed reference file
-  writer.writeReactionPMIDCSV(reactionPMID, outputPath);
-
+  return [PMIDs, reactionPMID];
 };
 
-const extractGeneAnnotation = (componentIdDict, modelDir) => {
+const getGeneAnnotation = (componentIdDict, modelDir) => {
   const geneAnnoFile = utils.getFile(modelDir, /genes-new[.]tsv$/);
   if (!geneAnnoFile) {
     console.log("Warning: cannot find gene annotation file genes-new.tsv in path", modelDir);
@@ -122,7 +115,7 @@ const extractGeneAnnotation = (componentIdDict, modelDir) => {
   }
 }
 
-const createComponentExternalDbFile = (externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir, outputPath) => {
+const getComponentExternalDb = (externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir) => {
   const externalIdDBComponentRel = [];
   const filename = `${component}s-new.tsv`;
   const extIDFile = utils.getFile(modelDir, filename);
@@ -207,15 +200,12 @@ const createComponentExternalDbFile = (externalIdNodes, externalIdDBMap, extNode
   } else {
     console.log(`Warning: cannot find external ID file ${filename} in path`, modelDir);
   }
-
-  // write the associated file
-  writer.writeComponentExternalDbCSV(externalIdDBComponentRel, outputPath, fcomponent);
-  return extNodeIdTracker;
+  return [extNodeIdTracker, fcomponent, externalIdDBComponentRel];
 }
 
 
-exports.extractInfoFromYaml = extractInfoFromYaml;
-exports.createComponentSVGMapFile = createComponentSVGMapFile;
-exports.createPMIDFile = createPMIDFile;
-exports.extractGeneAnnotation = extractGeneAnnotation;
-exports.createComponentExternalDbFile = createComponentExternalDbFile;
+exports.getInfoFromYaml = getInfoFromYaml;
+exports.getComponentSvgRel = getComponentSvgRel;
+exports.getPMIDs = getPMIDs;
+exports.getGeneAnnotation = getGeneAnnotation;
+exports.getComponentExternalDb = getComponentExternalDb;
