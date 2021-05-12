@@ -48,19 +48,14 @@ const parseModelFiles = (modelDir) => {
   writer.writeSvgCSV(svgNodes, outputPath);
 
   // ========================================================================
-  // external IDs and annotation
-  // ========================================================================
+  // parse pubmed references
   const [PMIDs, reactionPMID] = parser.getPMIDs(PMIDSset, componentIdDict);
-  // write pubmedReferences file
-  writer.writePMIDCSV(PMIDs, outputPath);
-  // write reaction pubmed reference file
-  writer.writeReactionPMIDCSV(reactionPMID, outputPath);
+  writer.writePMIDCSV(PMIDs, outputPath);  // write pubmedReferences file
+  writer.writeReactionPMIDCSV(reactionPMID, outputPath); // write reaction pubmed reference file
 
-  // extract information from gene annotation file
+  // ========================================================================
+  // parse gene annotations
   parser.getGeneAnnotation(componentIdDict, modelDir);
-
-  // extract description subsystem annotation file
-  // TODO or remove annotation file
 
   // ========================================================================
   // parse External IDs files
@@ -133,6 +128,7 @@ const parseModelFiles = (modelDir) => {
   instructions = cypher.getModelCypherInstructions(prefix, dropIndexes, model, version, instructions);
 };
 
+// ========================================================================
 // argument parsing
 const args = [];
 try {
@@ -154,6 +150,7 @@ if (!fs.existsSync(`${outDir}`)){
   fs.mkdirSync(`${outDir}`);
 }
 
+// ========================================================================
 // main procedure
 try {
   const intputDirFiles = fs.readdirSync(inputDir);
@@ -174,9 +171,9 @@ try {
   return;
 }
 
+// ========================================================================
 // write cypher intructions to file
 writer.writeCypherFile(instructions, outDir);
 
-// ========================================================================
 // write a smaller version of the hpa rna levels file, to send to the frontend
 writer.writeHpaRnaJson(humanGeneIdSet, inputDir, outDir);

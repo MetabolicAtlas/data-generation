@@ -4,6 +4,7 @@ const utils = require('./utils.js');
 
 
 const writeComponentSvgCSV = (svgRels, outputPath, component) => {
+  // Write CSV files with componentId and SvgMapId
   const csvWriter = createCsvWriter({
     path: `${outputPath}${component}SvgMaps.csv`,
     header: [{ id: `${component}Id`, title: `${component}Id` },
@@ -13,7 +14,7 @@ const writeComponentSvgCSV = (svgRels, outputPath, component) => {
 }
 
 const writePMIDCSV = (PMIDs, outputPath) => {
-  // write pubmedReferences file
+  // write the file containing a list of pubmed IDs
   csvWriter = createCsvWriter({
     path: `${outputPath}pubmedReferences.csv`,
     header: [{ id: 'id', title: 'id' }],
@@ -23,6 +24,7 @@ const writePMIDCSV = (PMIDs, outputPath) => {
   ));
 }
 const writeReactionPMIDCSV = (reactionPMID, outputPath) => {
+  // write the file containing reaction IDs and its corresponding pubmed IDs
   csvWriter = createCsvWriter({
     path: `${outputPath}reactionPubmedReferences.csv`,
     header: [{ id: 'reactionId', title: 'reactionId' },
@@ -32,6 +34,7 @@ const writeReactionPMIDCSV = (reactionPMID, outputPath) => {
 }
 
 const writeComponentExternalDbCSV = (externalIdDBComponentRel, outputPath, fcomponent) => {
+  // Write the file containing externalDb IDs for each component
   csvWriter = createCsvWriter({
     path: `${outputPath}${fcomponent}ExternalDbs.csv`,
     header: [{ id: `${fcomponent}Id`, title: `${fcomponent}Id` },
@@ -43,6 +46,7 @@ const writeComponentExternalDbCSV = (externalIdDBComponentRel, outputPath, fcomp
 }
 
 const writeSvgCSV = (svgNodes, outputPath) => {
+  // Write the file containing a list of SvgMap files
   csvWriter = createCsvWriter({
     path: `${outputPath}svgMaps.csv`,
     header: svgNodes.length ? Object.keys(svgNodes[0]).map(k => Object({ id: k, title: k })) : '',
@@ -51,6 +55,7 @@ const writeSvgCSV = (svgNodes, outputPath) => {
 }
 
 const writeExternalDbCSV = (externalIdNodes, outputPath) => {
+  // Write the file containing all externalDb info
   csvWriter = createCsvWriter({
     path: `${outputPath}externalDbs.csv`,
     header: [{ id: 'id', title:'id' },

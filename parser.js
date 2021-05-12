@@ -4,6 +4,7 @@ const utils = require('./utils.js');
 const { dbnameDict } = require('./var.js');
 
 const getInfoFromYaml = (yamlFile) => {
+  // extract information from the YAML file
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
   const model = utils.toLabelCase(metadataSection.short_name);
@@ -13,6 +14,7 @@ const getInfoFromYaml = (yamlFile) => {
 }
 
 const getComponentSvgRel = (component, svgNodes, modelDir) => {
+  // get SVG files for compartments and subsystems
   const filename = `${component}SVG.tsv.plain`;
   const mappingFile = utils.getFile(modelDir, filename);
   const isCustom = component === 'custom';
@@ -65,6 +67,7 @@ const getComponentSvgRel = (component, svgNodes, modelDir) => {
 };
 
 const getPMIDs = (PMIDSset, componentIdDict) => {
+  // get pubmed IDs from the componentIdDict, which is read from the YAML file
   const reactionPMID = [];
   const PMIDs = [];
   for (const reactionId in componentIdDict.reaction) {
@@ -90,6 +93,7 @@ const getPMIDs = (PMIDSset, componentIdDict) => {
 };
 
 const getGeneAnnotation = (componentIdDict, modelDir) => {
+  // get annotaitons for genes from the genes tsv file
   const geneAnnoFile = utils.getFile(modelDir, /genes-new[.]tsv$/);
   if (!geneAnnoFile) {
     console.log("Warning: cannot find gene annotation file genes-new.tsv in path", modelDir);
@@ -116,6 +120,7 @@ const getGeneAnnotation = (componentIdDict, modelDir) => {
 }
 
 const getComponentExternalDb = (externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir) => {
+  // get externalId from the components tsv files
   const externalIdDBComponentRel = [];
   const filename = `${component}s-new.tsv`;
   const extIDFile = utils.getFile(modelDir, filename);
