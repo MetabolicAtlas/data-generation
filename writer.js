@@ -165,7 +165,7 @@ const writeComponentStateCSV = (content, k, outputPath) => {
   csvWriter.writeRecords(elements.map(({ subsystems, metabolites, compartment, ...e }) => e));
 }
 
-const writeCyperFile = (instructions, outDir) => {
+const writeCypherFile = (instructions, outDir) => {
   fs.writeFileSync(`${outDir}/import.cypher`, instructions.join('\n'), 'utf8');
 }
 
@@ -202,5 +202,5 @@ exports.writeRGCSV = writeRGCSV;
 exports.writeRSCSV = writeRSCSV;
 exports.writeComponentCSV = writeComponentCSV;
 exports.writeComponentStateCSV = writeComponentStateCSV;
-exports.writeCyperFile = writeCyperFile;
+exports.writeCypherFile = writeCypherFile;
 exports.writeHpaRnaJson = writeHpaRnaJson;

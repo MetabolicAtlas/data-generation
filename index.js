@@ -1,8 +1,9 @@
 const fs = require('fs'), path = require('path');
 const yaml = require('js-yaml');
 const parser = require('./parser.js');
-const utils = require('./utils.js');
+const utils  = require('./utils.js');
 const writer = require('./writer.js');
+const cypher = require('./cypher.js');
 
 let extNodeIdTracker = 1;
 const humanGeneIdSet = new Set();
@@ -152,7 +153,7 @@ const parseModelFiles = (modelDir) => {
   });
 
   // TODO generate instructions more dynamically
-  instructions = parser.getModelCypherInstructions(prefix, dropIndexes, model, version, instructions);
+  instructions = cypher.getModelCypherInstructions(prefix, dropIndexes, model, version, instructions);
 };
 
 // argument parsing
@@ -186,7 +187,7 @@ try {
       parseModelFiles(filePath);
     }
   }
-  instructions = parser.getRemainCyperInstructions(instructions);
+  instructions = cypher.getRemainCypherInstructions(instructions);
 } catch (e) {
   if (e.mark) {
     // avoid to print the whole yaml into console
@@ -196,8 +197,8 @@ try {
   return;
 }
 
-// write cyper intructions to file
-writer.writeCyperFile(instructions, outDir);
+// write cypher intructions to file
+writer.writeCypherFile(instructions, outDir);
 
 // ========================================================================
 // write a smaller version of the hpa rna levels file, to send to the frontend
