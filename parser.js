@@ -1,8 +1,8 @@
 const yaml = require('js-yaml');
 const fs = require('fs'), path = require('path');
-const { dbnameDict } = require('./var.js');
 const utils = require('./utils.js');
 const writer = require('./writer.js');
+const { dbnameDict } = require('./var.js');
 
 const extractInfoFromYaml = (yamlFile) => {
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));

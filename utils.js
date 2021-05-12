@@ -1,4 +1,5 @@
 const fs = require('fs'), path = require('path');
+
 const trim = (x, characters=" \t\w") => {
   var start = 0;
   while (characters.indexOf(x[start]) >= 0) {
@@ -173,6 +174,36 @@ const getUniqueMetabolite = (m, uniqueCompartmentalizedMap, uniqueMetDict, uniqu
   }
 }
 
+const getComponentIdDict = (content, isHuman) => {
+  const componentIdDict = {}; // store for each type of component the key  Id <-> element
+  // use to filter out annotation/external ids for components not in the model and to add missing information
+  // extracted from these annotation files such as description, etc...
+  Object.keys(content).forEach((k) => {
+    componentIdDict[k] = Object.fromEntries(content[k].map(e => [e[`${k}Id`], e]));
+  });
+
+  if (isHuman) {
+    Object.keys(componentIdDict.gene).forEach((geneId) => {
+      humanGeneIdSet.add(geneId);
+    });
+  }
+
+  // subsystems are not a section in the yaml file, but are extracted from the reactions info
+  content.subsystem = [];
+  componentIdDict.subsystem = {};
+  content.reaction.forEach((r) => {
+    r.subsystems.forEach((name) => {
+      const id = idfyString(name);
+      const subsystemObject = { subsystemId: id, name }; // TODO add 'description' key
+      if (!(id in componentIdDict.subsystem)) {
+        content.subsystem.push(subsystemObject);
+        componentIdDict.subsystem[id] = subsystemObject;
+      };
+    });
+  });
+  return componentIdDict;
+}
+
 
 exports.getFile = getFile;
 exports.toLabelCase = toLabelCase;
@@ -188,3 +219,4 @@ exports.getReactionRel = getReactionRel;
 exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
 exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
 exports.getUniqueMetabolite = getUniqueMetabolite;
+exports.getComponentIdDict = getComponentIdDict;
