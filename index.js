@@ -111,13 +111,13 @@ const parseModelFiles = (modelDir) => {
   let hm = {}
   const uniqueCompartmentalizedMap = {}
   content.compartmentalizedMetabolite.forEach((m) => {
-    parser.getUniqueCompartmentlizedMap(m, hm, uniqueCompartmentalizedMap);
+    utils.getUniqueCompartmentlizedMap(m, hm, uniqueCompartmentalizedMap);
   })
 
   const uniqueMetDict = {};
   const uniqueMetabolites = [];
   content.compartmentalizedMetabolite.forEach((m) => {
-    parser.getUniqueMetabolite(m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites);
+    utils.getUniqueMetabolite(m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites);
   })
 
   // create compartmentalizedMetabolite file

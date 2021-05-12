@@ -1,5 +1,4 @@
 const fs = require('fs'), path = require('path');
-const parser = require('./parser.js');
 const trim = (x, characters=" \t\w") => {
   var start = 0;
   while (characters.indexOf(x[start]) >= 0) {
@@ -123,7 +122,7 @@ const getReactionRel = (content) => {
         reactionProductRecords.push({ reactionId: r.reactionId, compartmentalizedMetaboliteId, stoichiometry });
       }
     });
-    parser.getGeneIdsFromGeneRule(r.geneRule).forEach((geneId) => {
+    getGeneIdsFromGeneRule(r.geneRule).forEach((geneId) => {
       reactionGeneRecords.push({ reactionId: r.reactionId, geneId });
     });
     r.subsystems.forEach((name) => {
@@ -131,6 +130,47 @@ const getReactionRel = (content) => {
     })
   });
   return [reactionReactantRecords, reactionProductRecords, reactionGeneRecords, reactionSubsystemRecords];
+}
+
+const getGeneIdsFromGeneRule = (geneRule) => {
+  let idList = [];
+  if (geneRule) {
+    idList = geneRule.split(/\s+and\s+|\s+or\s+/).filter(e => e);
+  }
+  return idList;
+}
+
+const getUniqueCompartmentlizedMap = (m, hm, uniqueCompartmentalizedMap) => {
+  const newID = idfyString2(m.name);
+  if (!(newID in hm)) {
+    hm[newID] = m.name;
+    uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
+  } else {
+    if (hm[newID] !== m.name) {
+      // console.log('Error duplicated ID:' + newID + '(' + m.name + ') collision with ' + hm[newID]);
+      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID + '_';
+    } else {
+      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
+    }
+  }
+}
+
+const getUniqueMetabolite = (m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites) => {
+  const newID = uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId];
+  if (!(m.name in uniqueMetDict)) {
+    const uMet = {
+      metaboliteId: newID,
+      name: m.name,
+      alternateName: m.alternateName,
+      synonyms: m.synonyms,
+      description: m.description,
+      formula: m.formula,
+      charge: m.charge,
+      isCurrency: m.isCurrency,
+    };
+    uniqueMetabolites.push(uMet);
+    uniqueMetDict[uMet.name] = uMet;
+  }
 }
 
 
@@ -145,3 +185,6 @@ exports.reformatReactionObjets = reformatReactionObjets;
 exports.idfyString = idfyString;
 exports.idfyString2 = idfyString2;
 exports.getReactionRel = getReactionRel;
+exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
+exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
+exports.getUniqueMetabolite = getUniqueMetabolite;

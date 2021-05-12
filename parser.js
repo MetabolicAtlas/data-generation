@@ -204,52 +204,7 @@ const createComponentExternalDbFile = (externalIdNodes, externalIdDBMap, extNode
   return extNodeIdTracker;
 }
 
-const getUniqueCompartmentlizedMap = (m, hm, uniqueCompartmentalizedMap) => {
-  const newID = utils.idfyString2(m.name);
-  if (!(newID in hm)) {
-    hm[newID] = m.name;
-    uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
-  } else {
-    if (hm[newID] !== m.name) {
-      // console.log('Error duplicated ID:' + newID + '(' + m.name + ') collision with ' + hm[newID]);
-      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID + '_';
-    } else {
-      uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId] = newID;
-    }
-  }
-}
-
-const getUniqueMetabolite = (m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites) => {
-  const newID = uniqueCompartmentalizedMap[m.compartmentalizedMetaboliteId];
-  if (!(m.name in uniqueMetDict)) {
-    const uMet = {
-      metaboliteId: newID,
-      name: m.name,
-      alternateName: m.alternateName,
-      synonyms: m.synonyms,
-      description: m.description,
-      formula: m.formula,
-      charge: m.charge,
-      isCurrency: m.isCurrency,
-    };
-    uniqueMetabolites.push(uMet);
-    uniqueMetDict[uMet.name] = uMet;
-  }
-}
-
-
-const getGeneIdsFromGeneRule = (geneRule) => {
-  let idList = [];
-  if (geneRule) {
-    idList = geneRule.split(/\s+and\s+|\s+or\s+/).filter(e => e);
-  }
-  return idList;
-}
-
-exports.getGeneIdsFromGeneRule = getGeneIdsFromGeneRule;
 exports.createComponentSVGMapFile = createComponentSVGMapFile;
 exports.createPMIDFile = createPMIDFile;
 exports.extractGeneAnnotation = extractGeneAnnotation;
 exports.createComponentExternalDbFile = createComponentExternalDbFile;
-exports.getUniqueCompartmentlizedMap = getUniqueCompartmentlizedMap;
-exports.getUniqueMetabolite = getUniqueMetabolite;
