@@ -1,6 +1,7 @@
 const fs = require('fs'), path = require('path');
 const yaml = require('js-yaml');
 const func = require('./func.js');
+const utils = require('./utils.js');
 
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 let csvWriter = null;
@@ -18,14 +19,14 @@ let outDir = './data';
 
 const parseModelFiles = (modelDir) => {
   // find the yaml in the folder
-  yamlFile = func.getFile(modelDir, /.*[.](yaml|yml)$/);
+  yamlFile = utils.getFile(modelDir, /.*[.](yaml|yml)$/);
   if (!yamlFile) {
     throw new Error("yaml file not found in path ", modelDir);
   }
 
   const [ metadata, metabolites, reactions, genes, compartments ] = yaml.safeLoad(fs.readFileSync(yamlFile, 'utf8'));
   const metadataSection = metadata.metaData || metadata.metadata;
-  const model = func.toLabelCase(metadataSection.short_name);
+  const model = utils.toLabelCase(metadataSection.short_name);
   // console.log("model=", model);
   const version = `V${metadataSection.version.replace(/\./g, '_')}`;
   const isHuman = metadataSection.short_name === 'Human-GEM';
@@ -34,10 +35,10 @@ const parseModelFiles = (modelDir) => {
   outputPath = `${outDir}/${prefix}.`;
 
   content = { // reformat object as proper key:value objects, rename/add/remove keys
-    compartmentalizedMetabolite: func.reformatCompartmentalizedMetaboliteObjets(metabolites.metabolites),
-    reaction: func.reformatReactionObjets(reactions.reactions),
-    gene: func.reformatGeneObjets(genes.genes),
-    compartment: func.reformatCompartmentObjets(compartments.compartments),
+    compartmentalizedMetabolite: utils.reformatCompartmentalizedMetaboliteObjets(metabolites.metabolites),
+    reaction: utils.reformatReactionObjets(reactions.reactions),
+    gene: utils.reformatGeneObjets(genes.genes),
+    compartment: utils.reformatCompartmentObjets(compartments.compartments),
   }
 
   const componentIdDict = {}; // store for each type of component the key  Id <-> element
@@ -58,7 +59,7 @@ const parseModelFiles = (modelDir) => {
   componentIdDict.subsystem = {};
   content.reaction.forEach((r) => {
     r.subsystems.forEach((name) => {
-      const id = func.idfyString(name);
+      const id = utils.idfyString(name);
       const subsystemObject = { subsystemId: id, name }; // TODO add 'description' key
       if (!(id in componentIdDict.subsystem)) {
         content.subsystem.push(subsystemObject);
@@ -219,7 +220,7 @@ const parseModelFiles = (modelDir) => {
       reactionGeneRecords.push({ reactionId: r.reactionId, geneId });
     });
     r.subsystems.forEach((name) => {
-      reactionSubsystemRecords.push({ reactionId: r.reactionId, subsystemId: func.idfyString(name) });
+      reactionSubsystemRecords.push({ reactionId: r.reactionId, subsystemId: utils.idfyString(name) });
     })
   });
 
