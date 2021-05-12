@@ -12,3 +12,5 @@ data/
 # temp import data
 **/*.tsv
 **/*.yml
+
+*.swp
