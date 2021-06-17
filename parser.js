@@ -71,22 +71,24 @@ const getPMIDs = (PMIDSset, componentIdDict) => {
   const reactionPMID = [];
   const PMIDs = [];
   for (const reactionId in componentIdDict.reaction) {
-    if (reactionId.match('^HMR_')) {
-      const ECList = componentIdDict.reaction[reactionId].ec;
-      const PMIDList = componentIdDict.reaction[reactionId].references;
-      if (PMIDList) {
-        PMIDList.split(';').forEach((pubmedReferenceId) => {
-          if (pubmedReferenceId.match('^PMID')) {
-            pubmedReferenceId = pubmedReferenceId.replace(/PMID:*/g, '');
-            // console.log(pubmedReferenceId);
+    const ECList = componentIdDict.reaction[reactionId].ec;
+    let PMIDList = componentIdDict.reaction[reactionId].references;
+    if (PMIDList) {
+      PMIDList = PMIDList.replace(/,/g, ';');
+      PMIDList.split(';').forEach((pubmedReferenceId) => {
+        pubmedReferenceId = pubmedReferenceId.trim();
+        if (pubmedReferenceId.match('^PMID')) {
+          pubmedReferenceId = pubmedReferenceId.replace(/PMID:*/g, '').trim();
+          const isnum = /^\d+$/.test(pubmedReferenceId);
+          if (isnum) {
             reactionPMID.push({ reactionId, pubmedReferenceId });
             if (!PMIDSset.has(pubmedReferenceId)) {
               PMIDs.push(pubmedReferenceId);
               PMIDSset.add(pubmedReferenceId);
             }
           }
-        });
-      }
+        }
+      });
     }
   }
   return [PMIDs, reactionPMID];
