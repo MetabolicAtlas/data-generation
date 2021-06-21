@@ -39,9 +39,11 @@ const getGeneIdsFromGeneRule = (geneRule) => {
   if (geneRule) {
     idList = geneRule.split(/\s+and\s+|\s+or\s+/)
       .filter(e => e)
-      .map(gid => gid.replace(/(\(|\))/, ''));
+      .map(gid => gid.replace(/(\(+|\)+)/, ''));
   }
-  return idList;
+
+  // convert to set and back to array
+  return [...new Set(idList)];
 }
 
 const reformatCompartmentObjets = (data) => {
