@@ -15,7 +15,7 @@ const getInfoFromYaml = (yamlFile) => {
 
 const getComponentSvgRel = (component, svgNodes, modelDir) => {
   // get SVG files for compartments and subsystems
-  const filename = `${component}SVG.tsv.plain`;
+  const filename = `${component}SVG.tsv`;
   const mappingFile = utils.getFile(modelDir, filename);
   const isCustom = component === 'custom';
 
@@ -96,9 +96,9 @@ const getPMIDs = (PMIDSset, componentIdDict) => {
 
 const getGeneAnnotation = (componentIdDict, modelDir) => {
   // get annotaitons for genes from the genes tsv file
-  const geneAnnoFile = utils.getFile(modelDir, /genes-new[.]tsv$/);
+  const geneAnnoFile = utils.getFile(modelDir, /genes[.]tsv$/);
   if (!geneAnnoFile) {
-    console.log("Warning: cannot find gene annotation file genes-new.tsv in path", modelDir);
+    console.log("Warning: cannot find gene annotation file genes.tsv in path", modelDir);
   } else {
     // TODO use one of the csv parsing lib (sync)
     lines = fs.readFileSync(geneAnnoFile, 
@@ -124,7 +124,7 @@ const getGeneAnnotation = (componentIdDict, modelDir) => {
 const getComponentExternalDb = (externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir) => {
   // get externalId from the components tsv files
   const externalIdDBComponentRel = [];
-  const filename = `${component}s-new.tsv`;
+  const filename = `${component}s.tsv`;
   const extIDFile = utils.getFile(modelDir, filename);
   const fcomponent = component === 'metabolite' ? 'compartmentalizedMetabolite' : component;
 
