@@ -34,7 +34,8 @@ const parseModelFiles = (modelDir) => {
     compartment: utils.reformatCompartmentObjets(compartments.compartments),
   }
 
-  const componentIdDict = utils.getComponentIdDict(content);
+  const componentIdDict = utils.getComponentIdDict(content, isHuman);
+  utils.getHumanGeneIdSet(componentIdDict, isHuman, humanGeneIdSet);
 
   // ========================================================================
   // SVG mapping file

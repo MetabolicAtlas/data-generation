@@ -182,12 +182,6 @@ const getComponentIdDict = (content, isHuman) => {
     componentIdDict[k] = Object.fromEntries(content[k].map(e => [e[`${k}Id`], e]));
   });
 
-  if (isHuman) {
-    Object.keys(componentIdDict.gene).forEach((geneId) => {
-      humanGeneIdSet.add(geneId);
-    });
-  }
-
   // subsystems are not a section in the yaml file, but are extracted from the reactions info
   content.subsystem = [];
   componentIdDict.subsystem = {};
@@ -202,6 +196,15 @@ const getComponentIdDict = (content, isHuman) => {
     });
   });
   return componentIdDict;
+}
+
+const getHumanGeneIdSet = (componentIdDict, isHuman, humanGeneIdSet) => {
+  // the parameter humanGeneIdSet will be updated
+  if (isHuman) {
+    Object.keys(componentIdDict.gene).forEach((geneId) => {
+      humanGeneIdSet.add(geneId);
+    });
+  }
 }
 
 module.exports = {
@@ -220,5 +223,6 @@ module.exports = {
   getUniqueCompartmentlizedMap,
   getUniqueMetabolite,
   getComponentIdDict,
+  getHumanGeneIdSet,
 };
 
