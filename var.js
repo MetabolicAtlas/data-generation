@@ -12,7 +12,6 @@ const dbnameDict = {
       'rxnRatconID': '',
       'rxnTCDBID': '',
       'spontaneous': '',
-      'rxnMAID': '',
       'rxnRheaID': 'https://identifiers.org/rhea',
       'rxnRheaMasterID': 'https://identifiers.org/rhea',
     },
@@ -28,7 +27,6 @@ const dbnameDict = {
       'rxnRatconID': 'Ratcon',
       'rxnTCDBID': 'TCDB',
       'spontaneous': 'spontaneous',
-      'rxnMAID': 'MA',
       'rxnRheaID': 'Rhea',
       'rxnRheaMasterID': 'RheaMaster',
     },
@@ -46,7 +44,6 @@ const dbnameDict = {
       'metRecon3DID': 'https://identifiers.org/vmhmetabolite',
       'metMetaNetXID': 'https://identifiers.org/metanetx.chemical',
       'metHMR2ID': '',
-      'metMAID': '',
 
     },
     'dbname_map': {
@@ -61,7 +58,6 @@ const dbnameDict = {
       'metRecon3DID': 'Recon3D',
       'metMetaNetXID': 'MetaNetX',
       'metHMR2ID': 'HMR 2.0',
-      'metMAID': 'MA',
     },
   },
   'gene' : {
