@@ -176,7 +176,7 @@ const getUniqueMetabolite = (m, uniqueCompartmentalizedMap, uniqueMetDict, uniqu
   }
 }
 
-const getComponentIdDict = (content, isHuman) => {
+const getComponentIdDict = (content) => {
   const componentIdDict = {}; // store for each type of component the key  Id <-> element
   // use to filter out annotation/external ids for components not in the model and to add missing information
   // extracted from these annotation files such as description, etc...
@@ -200,13 +200,11 @@ const getComponentIdDict = (content, isHuman) => {
   return componentIdDict;
 }
 
-const getHumanGeneIdSet = (componentIdDict, isHuman, humanGeneIdSet) => {
+const getHumanGeneIdSet = (componentIdDict, humanGeneIdSet) => {
   // the parameter humanGeneIdSet will be updated
-  if (isHuman) {
-    Object.keys(componentIdDict.gene).forEach((geneId) => {
-      humanGeneIdSet.add(geneId);
-    });
-  }
+  Object.keys(componentIdDict.gene).forEach((geneId) => {
+    humanGeneIdSet.add(geneId);
+  });
 }
 
 module.exports = {
