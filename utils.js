@@ -15,9 +15,7 @@ const trim = (x, characters=" \t\w") => {
 const cleanExternalId = (rawExternalId, dbName) => {
   // clean rawExternalId
   rawExternalId = trim(rawExternalId.trim(), '"');
-  if (dbName == 'MA'){
-    rawExternalId = rawExternalId.replace(/^MA-/, '');
-  } else if (dbName == 'ChEBI') {
+  if (dbName == 'ChEBI') {
     rawExternalId = rawExternalId.replace(/^CHEBI:/, '');
   } else if (dbName == 'Rhea' || dbName == 'RheaMaster') {
     rawExternalId = rawExternalId.replace(/^RHEA:/, '');
