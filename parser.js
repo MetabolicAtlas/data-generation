@@ -74,7 +74,6 @@ const getPMIDs = (PMIDSset, componentIdDict) => {
     const ECList = componentIdDict.reaction[reactionId].ec;
     let PMIDList = componentIdDict.reaction[reactionId].references;
     if (PMIDList) {
-      PMIDList = PMIDList.replace(/,/g, ';');
       PMIDList.split(';').forEach((pubmedReferenceId) => {
         pubmedReferenceId = pubmedReferenceId.trim();
         if (pubmedReferenceId.match('^PMID')) {
