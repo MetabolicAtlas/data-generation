@@ -122,10 +122,6 @@ LOAD CSV WITH HEADERS FROM "file:///${prefix}.compartmentalizedMetaboliteExterna
 MATCH (n1:CompartmentalizedMetabolite:${model} {id: csvLine.compartmentalizedMetaboliteId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
-LOAD CSV WITH HEADERS FROM "file:///${prefix}.subsystemExternalDbs.csv" AS csvLine
-MATCH (n1:Subsystem:${model} {id: csvLine.subsystemId}),(n2:ExternalDb {id: csvLine.externalDbId})
-CREATE (n1)-[:${version}]->(n2);
-
 LOAD CSV WITH HEADERS FROM "file:///${prefix}.reactionExternalDbs.csv" AS csvLine
 MATCH (n1:Reaction:${model} {id: csvLine.reactionId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
