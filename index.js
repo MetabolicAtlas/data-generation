@@ -62,7 +62,7 @@ const parseModelFiles = (modelDir) => {
   // parse External IDs files
   const externalIdNodes = [];
 
-  ['reaction', 'metabolite', 'gene', 'subsystem'].forEach((component) => {
+  ['reaction', 'metabolite', 'gene'].forEach((component) => {
     let fcomponent = "";
     let externalIdDBComponentRel = [];
     [extNodeIdTracker, fcomponent, externalIdDBComponentRel ] = parser.getComponentExternalDb(
