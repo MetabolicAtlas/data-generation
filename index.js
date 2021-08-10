@@ -3,6 +3,7 @@ const parser = require('./parser.js');
 const utils  = require('./utils.js');
 const writer = require('./writer.js');
 const cypher = require('./cypher.js');
+const { processDataOverlayFiles } = require('./dataOverlay');
 
 let extNodeIdTracker = 1;
 const humanGeneIdSet = new Set();
@@ -38,6 +39,8 @@ const parseModelFiles = (modelDir) => {
   if (isHuman) {
     utils.getHumanGeneIdSet(componentIdDict, humanGeneIdSet);
   }
+
+  processDataOverlayFiles({ modelDir, componentIdDict })
 
   // ========================================================================
   // SVG mapping file
