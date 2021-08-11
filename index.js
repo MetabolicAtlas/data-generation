@@ -40,7 +40,7 @@ const parseModelFiles = (modelDir) => {
     utils.getHumanGeneIdSet(componentIdDict, humanGeneIdSet);
   }
 
-  processDataOverlayFiles({ modelDir, componentIdDict })
+  processDataOverlayFiles({ modelDir, outDir, componentIdDict });
 
   // ========================================================================
   // SVG mapping file

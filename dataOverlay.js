@@ -6,11 +6,21 @@ const DATA_TYPE_COMPONENTS = {
   metabolomics: 'compartmentalizedMetabolite',
 };
 
-const processDataOverlayFiles = ({ modelDir, componentIdDict }) => {
+/*
+ * This function transforms data files into files that are ready
+ * to be used in the Metabolic Atlas website.
+ * Example:
+ * `modelDir`: ../data-files/integrated-models/Human-GEM
+ * output index file: ./data/dataOverlay/Human-GEM/index.json
+ * output data source file: ./data/dataOverlay/Human-GEM/transcriptomics/protein1.mock.tsv
+ */
+const processDataOverlayFiles = ({ modelDir, outDir, componentIdDict }) => {
   const filesDir = `${modelDir}/dataOverlay`;
   if (!fs.existsSync(filesDir)) {
     return;
   }
+
+  const modelOutDir = getModelOutDir({ modelDir, outDir });
 
   const dataOverlayFiles = {};
   const dataTypes = fs
@@ -28,7 +38,11 @@ const processDataOverlayFiles = ({ modelDir, componentIdDict }) => {
     {},
   );
 
-  // TODO: write dataSourcesDict to data folder
+  fs.writeFileSync(
+    `${modelOutDir}/index.json`,
+    JSON.stringify(dataSourcesDict),
+    'utf8',
+  );
 
   for (const [dt, metadataList] of Object.entries(dataSourcesDict)) {
     const componentType = DATA_TYPE_COMPONENTS[dt];
@@ -43,10 +57,35 @@ const processDataOverlayFiles = ({ modelDir, componentIdDict }) => {
         inputFile,
         componentIdSet,
       });
-      // TODO: write condensedFile to data folder
-      console.log(condensedFile);
+
+      const dataSourceOutDir = `${modelOutDir}/${dt}`;
+      if (!fs.existsSync(`${dataSourceOutDir}`)) {
+        fs.mkdirSync(`${dataSourceOutDir}`);
+      }
+
+      fs.writeFileSync(
+        `${dataSourceOutDir}/${filename}`,
+        condensedFile,
+        'utf8',
+      );
     }
   }
+};
+
+const getModelOutDir = ({ modelDir, outDir }) => {
+  const dataOverlayOutDir = `${outDir}/dataOverlay`;
+
+  if (!fs.existsSync(`${dataOverlayOutDir}`)) {
+    fs.mkdirSync(`${dataOverlayOutDir}`);
+  }
+
+  const modelFolder = modelDir.split('/').pop();
+  const modelOutDir = `${outDir}/dataOverlay/${modelFolder}`;
+  if (!fs.existsSync(`${modelOutDir}`)) {
+    fs.mkdirSync(`${modelOutDir}`);
+  }
+
+  return modelOutDir;
 };
 
 const parseIndexFile = (indexFile) => {
@@ -73,7 +112,7 @@ const condenseDataSourceFile = ({ inputFile, componentIdSet }) => {
     return componentIdSet.has(id);
   });
 
-  return [header, ...filteredRows];
+  return [header, ...filteredRows].join('\n');
 };
 
 module.exports = { processDataOverlayFiles };
