@@ -11,8 +11,8 @@ const DATA_TYPE_COMPONENTS = {
  * to be used in the Metabolic Atlas website.
  * Example:
  * `modelDir`: ../data-files/integrated-models/Human-GEM
- * output index file: ./data/dataOverlay/Human-GEM/index.json
- * output data source file: ./data/dataOverlay/Human-GEM/transcriptomics/protein1.mock.tsv
+ * output index file: ./dataOverlay/Human-GEM/index.json
+ * output data source file: ./dataOverlay/Human-GEM/transcriptomics/protein1.mock.tsv
  */
 const processDataOverlayFiles = ({ modelDir, outDir, componentIdDict }) => {
   const filesDir = `${modelDir}/dataOverlay`;
@@ -73,14 +73,12 @@ const processDataOverlayFiles = ({ modelDir, outDir, componentIdDict }) => {
 };
 
 const getModelOutDir = ({ modelDir, outDir }) => {
-  const dataOverlayOutDir = `${outDir}/dataOverlay`;
-
-  if (!fs.existsSync(`${dataOverlayOutDir}`)) {
-    fs.mkdirSync(`${dataOverlayOutDir}`);
+  if (!fs.existsSync(`${outDir}`)) {
+    fs.mkdirSync(`${outDir}`);
   }
 
   const modelFolder = modelDir.split('/').pop();
-  const modelOutDir = `${outDir}/dataOverlay/${modelFolder}`;
+  const modelOutDir = `${outDir}/${modelFolder}`;
   if (!fs.existsSync(`${modelOutDir}`)) {
     fs.mkdirSync(`${modelOutDir}`);
   }
