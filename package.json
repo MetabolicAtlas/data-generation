@@ -1,7 +1,7 @@
 {
-  "name": "neo4j-data-generation",
+  "name": "data-generation",
   "version": "1.0.0",
-  "description": "Data generator for neo4j",
+  "description": "Data generator for Metabolic Atlas",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
