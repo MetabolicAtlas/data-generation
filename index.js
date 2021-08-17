@@ -3,6 +3,7 @@ const parser = require('./parser.js');
 const utils  = require('./utils.js');
 const writer = require('./writer.js');
 const cypher = require('./cypher.js');
+const { processDataOverlayFiles } = require('./dataOverlay');
 
 let extNodeIdTracker = 1;
 const humanGeneIdSet = new Set();
@@ -12,8 +13,7 @@ let instructions = [];
 let dropIndexes = false;
 let prefix = '' ;
 let outputPath = '';
-let outDir = './data';
-
+let outDir = './neo4j';
 
 const parseModelFiles = (modelDir) => {
   // find the yaml in the folder
@@ -38,6 +38,8 @@ const parseModelFiles = (modelDir) => {
   if (isHuman) {
     utils.getHumanGeneIdSet(componentIdDict, humanGeneIdSet);
   }
+
+  processDataOverlayFiles({ modelDir, outDir: './dataOverlay', componentIdDict });
 
   // ========================================================================
   // SVG mapping file

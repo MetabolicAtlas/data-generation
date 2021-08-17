@@ -1,6 +1,4 @@
-# Data generator for neo4j
-
-
+# Data generator for Metabolic Atlas
 
 ## Prerequisites
 
@@ -20,10 +18,13 @@ and then by
     $ yarn start <PATH TO DATA FILES>
 
 
-After that, a folder `data/` will be created under the current directory. This
-folder `data/` contains CSV files along with the [Cypher](https://neo4j.com/developer/cypher/) instructions to import
-the data. `<PATH TO DATA FILES>` should point to data files from this
-[repository](https://github.com/MetabolicAtlas/data-files).
+After that, the folders `neo4j` and `dataOverlay` will be created under the current directory.
+
+The folder `neo4j` contains CSV files along with the [Cypher](https://neo4j.com/developer/cypher/) instructions to import the data.
+
+The folder `dataOverlay` contains TSV and JSON files that can be served directly in [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).
+
+`<PATH TO DATA FILES>` should point to data files from this [repository](https://github.com/MetabolicAtlas/data-files).
 
 Please note that while the aforementioned commands can be run on their own, the
 output is meaningful only for the deployment pipeline of [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).
