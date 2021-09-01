@@ -34,7 +34,7 @@ const dbnameDict = {
   'compartmentalizedMetabolite' : {
     'url_map':{
       'metBiGGID': 'https://identifiers.org/bigg.metabolite',
-      'metKEGGID': 'https://identifiers.org/kegg.metabolite',
+      'metKEGGID': 'https://identifiers.org/kegg.compound',
       'metHMDBID': 'https://identifiers.org/hmdb',
       'metChEBIID': 'https://identifiers.org/CHEBI',
       'metPubChemID': 'https://identifiers.org/pubchem.compound',
