@@ -179,6 +179,3 @@ try {
 // ========================================================================
 // write cypher intructions to file
 writer.writeCypherFile(instructions, outDir);
-
-// write a smaller version of the hpa rna levels file, to send to the frontend
-writer.writeHpaRnaJson(humanGeneIdSet, inputDir, outDir);
