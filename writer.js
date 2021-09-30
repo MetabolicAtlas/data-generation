@@ -175,25 +175,6 @@ const writeCypherFile = (instructions, outDir) => {
   fs.writeFileSync(`${outDir}/import.cypher`, instructions.join('\n'), 'utf8');
 }
 
-const writeHpaRnaJson = (humanGeneIdSet, inputDir, outDir) => {
-// write a smaller version of the hpa rna levels file, to send to the frontend
-// remove expressions of genes not in any human models parsed
-  if (!fs.existsSync(`${inputDir}/hpaRnaFull.json`)) {
-      throw new Error("HPA rna JSON file not found");
-  } else {
-    const hpaRnaExpressionJson = require(`${inputDir}/hpaRnaFull.json`);
-
-    Object.keys(hpaRnaExpressionJson.levels).forEach((geneId) => {
-      if (!humanGeneIdSet.has(geneId)) {
-        delete hpaRnaExpressionJson.levels[geneId];
-      }
-    });
-
-    const json_rna = JSON.stringify(hpaRnaExpressionJson);
-    fs.writeFileSync(`${outDir}/hpaRna.json`, json_rna);
-  }
-}
-
 module.exports = {
   writeComponentSvgCSV,
   writePMIDCSV,
@@ -211,5 +192,4 @@ module.exports = {
   writeComponentCSV,
   writeComponentStateCSV,
   writeCypherFile,
-  writeHpaRnaJson,
 }
