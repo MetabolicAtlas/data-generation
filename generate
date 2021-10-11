@@ -1,0 +1,25 @@
+#!/bin/bash
+requiredyarnver="1.22"
+requirednodever="v12"
+
+
+# Check versions
+version_greater_equal()
+{
+  printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
+  if [ $? -eq 1 ] ; then
+      echo "Error! Need $3 version $2 or above"
+      exit 1
+    fi
+}
+
+version_greater_equal "$(yarn --version)" ${requiredyarnver} "yarn"
+version_greater_equal "$(node --version)" ${requirednodever} "node"
+
+# Install
+yarn
+
+# Generate data using '../data-files' as default path
+DF=${1-../data-files}
+echo "Using data files from ${DF}"
+yarn start "${DF}"
