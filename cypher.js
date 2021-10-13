@@ -141,8 +141,8 @@ const getRemainCypherInstructions = (instructions) => {
 // Get the remaining cypher instructions
   `CALL db.index.fulltext.createNodeIndex(
     "fulltext",
-    ["CompartmentState", "Compartment", "MetaboliteState", "Metabolite", "CompartmentalizedMetabolite", "SubsystemState", "Subsystem", "ReactionState", "Reaction", "GeneState", "Gene", "PubmedReference"],
-    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID", "ec"]);
+    ["CompartmentState", "Compartment", "MetaboliteState", "Metabolite", "CompartmentalizedMetabolite", "SubsystemState", "Subsystem", "ReactionState", "Reaction", "GeneState", "Gene", "PubmedReference", "ExternalDb"],
+    ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID", "ec", "externalId"]);
   `.split('\n').forEach(i => {
     instructions.push(i);
   });
