@@ -1,10 +1,14 @@
 // functions to get cypher instructions
-const getModelCypherInstructions = (prefix, dropIndexes, model, version, instructions) => {
-// Get cypher instructions for each GEM model
+const getModelCypherInstructions = (
+  prefix,
+  dropIndexes,
+  model,
+  version,
+  instructions,
+) => {
+  // Get cypher instructions for each GEM model
   if (instructions.length === 0) {
-    instructions = [
-      'MATCH (n) DETACH DELETE n;\n',
-    ];
+    instructions = ['MATCH (n) DETACH DELETE n;\n'];
 
     if (dropIndexes) {
       instructions = instructions.concat([
@@ -17,7 +21,7 @@ const getModelCypherInstructions = (prefix, dropIndexes, model, version, instruc
         'DROP INDEX ON :SvgMap(id);',
         'DROP INDEX ON :ExternalDb(id);',
         'DROP INDEX ON :PubmedReference(id);\n',
-        'CALL db.index.fulltext.drop(\"fulltext\");\n',
+        'CALL db.index.fulltext.drop("fulltext");\n',
       ]);
     }
 
@@ -130,26 +134,25 @@ LOAD CSV WITH HEADERS FROM "file:///${prefix}.geneExternalDbs.csv" AS csvLine
 MATCH (n1:Gene:${model} {id: csvLine.geneId}),(n2:ExternalDb {id: csvLine.externalDbId})
 CREATE (n1)-[:${version}]->(n2);
 
-`
-  cypherInstructions.split('\n').forEach(i => {
+`;
+  cypherInstructions.split('\n').forEach((i) => {
     instructions.push(i);
   });
   return instructions;
-}
+};
 
 const getRemainCypherInstructions = (instructions) => {
-// Get the remaining cypher instructions
+  // Get the remaining cypher instructions
   `CALL db.index.fulltext.createNodeIndex(
     "fulltext",
     ["CompartmentState", "Compartment", "MetaboliteState", "Metabolite", "CompartmentalizedMetabolite", "SubsystemState", "Subsystem", "ReactionState", "Reaction", "GeneState", "Gene", "PubmedReference", "ExternalDb"],
     ["id", "name", "letterCode", "alternateName", "synonyms", "description", "formula", "function", "pubMedID", "ec", "externalId"]);
-  `.split('\n').forEach(i => {
-    instructions.push(i);
-  });
+  `
+    .split('\n')
+    .forEach((i) => {
+      instructions.push(i);
+    });
   return instructions;
-}
-
-module.exports = {
-  getModelCypherInstructions,
-  getRemainCypherInstructions,
 };
+
+export { getModelCypherInstructions, getRemainCypherInstructions };

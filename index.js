@@ -1,9 +1,11 @@
-const fs = require('fs'), path = require('path');
-const parser = require('./parser.js');
-const utils  = require('./utils.js');
-const writer = require('./writer.js');
-const cypher = require('./cypher.js');
-const { processDataOverlayFiles } = require('./dataOverlay');
+import fs from 'fs';
+import path from 'path';
+import * as parser from './parser.js';
+import * as utils from './utils.js';
+import * as writer from './writer.js';
+import * as cypher from './cypher.js';
+import { processDataOverlayFiles } from './dataOverlay.js';
+import { createTimelineChart } from './timelineGenerator.js';
 
 let extNodeIdTracker = 1;
 const humanGeneIdSet = new Set();
@@ -11,41 +13,63 @@ const externalIdDBMap = {};
 const PMIDSset = new Set();
 let instructions = [];
 let dropIndexes = false;
-let prefix = '' ;
+let prefix = '';
 let outputPath = '';
 let outDir = './neo4j';
+let inputDir, yamlFile;
 
 const parseModelFiles = (modelDir) => {
   // find the yaml in the folder
   yamlFile = utils.getFile(modelDir, /.*[.](yaml|yml)$/);
   if (!yamlFile) {
-    throw new Error("yaml file not found in path ", modelDir);
+    throw new Error('yaml file not found in path ', modelDir);
   }
 
-  const [metadata, metabolites, reactions, genes, compartments, metadataSection, model, version, isHuman] = parser.getInfoFromYaml(yamlFile);
+  const [
+    metadata,
+    metabolites,
+    reactions,
+    genes,
+    compartments,
+    metadataSection,
+    model,
+    version,
+    isHuman,
+  ] = parser.getInfoFromYaml(yamlFile);
 
   prefix = `${model}${version}`;
   outputPath = `${outDir}/${prefix}.`;
 
-  content = { // reformat object as proper key:value objects, rename/add/remove keys
-    compartmentalizedMetabolite: utils.reformatCompartmentalizedMetaboliteObjets(metabolites.metabolites),
+  const content = {
+    // reformat object as proper key:value objects, rename/add/remove keys
+    compartmentalizedMetabolite:
+      utils.reformatCompartmentalizedMetaboliteObjets(metabolites.metabolites),
     reaction: utils.reformatReactionObjets(reactions.reactions),
     gene: utils.reformatGeneObjets(genes.genes),
     compartment: utils.reformatCompartmentObjets(compartments.compartments),
-  }
+  };
 
   const componentIdDict = utils.getComponentIdDict(content);
   if (isHuman) {
     utils.getHumanGeneIdSet(componentIdDict, humanGeneIdSet);
   }
 
-  processDataOverlayFiles({ modelDir, outDir: './dataOverlay', componentIdDict });
+  processDataOverlayFiles({
+    modelDir,
+    outDir: './dataOverlay',
+    componentIdDict,
+  });
 
   // ========================================================================
   // SVG mapping file
   const svgNodes = [];
   ['compartment', 'subsystem', 'custom'].forEach((component) => {
-    const svgRels = parser.getComponentSvgRel(component, svgNodes, modelDir);
+    const svgRels = parser.getComponentSvgRel(
+      content,
+      component,
+      svgNodes,
+      modelDir,
+    );
     writer.writeComponentSvgCSV(svgRels, outputPath, component);
   });
 
@@ -55,7 +79,7 @@ const parseModelFiles = (modelDir) => {
   // ========================================================================
   // parse pubmed references
   const [PMIDs, reactionPMID] = parser.getPMIDs(PMIDSset, componentIdDict);
-  writer.writePMIDCSV(PMIDs, outputPath);  // write pubmedReferences file
+  writer.writePMIDCSV(PMIDs, outputPath); // write pubmedReferences file
   writer.writeReactionPMIDCSV(reactionPMID, outputPath); // write reaction pubmed reference file
 
   // ========================================================================
@@ -67,11 +91,22 @@ const parseModelFiles = (modelDir) => {
   const externalIdNodes = [];
 
   ['reaction', 'metabolite', 'gene'].forEach((component) => {
-    let fcomponent = "";
+    let fcomponent = '';
     let externalIdDBComponentRel = [];
-    [extNodeIdTracker, fcomponent, externalIdDBComponentRel ] = parser.getComponentExternalDb(
-      externalIdNodes, externalIdDBMap, extNodeIdTracker, component, componentIdDict, modelDir);
-    writer.writeComponentExternalDbCSV(externalIdDBComponentRel, outputPath, fcomponent);
+    [extNodeIdTracker, fcomponent, externalIdDBComponentRel] =
+      parser.getComponentExternalDb(
+        externalIdNodes,
+        externalIdDBMap,
+        extNodeIdTracker,
+        component,
+        componentIdDict,
+        modelDir,
+      );
+    writer.writeComponentExternalDbCSV(
+      externalIdDBComponentRel,
+      outputPath,
+      fcomponent,
+    );
   });
 
   // write the externalDbs file
@@ -85,17 +120,22 @@ const parseModelFiles = (modelDir) => {
   // write metabolite-compartmentalizedMetabolite relationships
   // generate unique metabolite
   // keep only distinct metabolite (non-compartmentalize) and use the name to generate IDs
-  let hm = {}
-  const uniqueCompartmentalizedMap = {}
+  let hm = {};
+  const uniqueCompartmentalizedMap = {};
   content.compartmentalizedMetabolite.forEach((m) => {
     utils.getUniqueCompartmentlizedMap(m, hm, uniqueCompartmentalizedMap);
-  })
+  });
 
   const uniqueMetDict = {};
   const uniqueMetabolites = [];
   content.compartmentalizedMetabolite.forEach((m) => {
-    utils.getUniqueMetabolite(m, uniqueCompartmentalizedMap, uniqueMetDict, uniqueMetabolites);
-  })
+    utils.getUniqueMetabolite(
+      m,
+      uniqueCompartmentalizedMap,
+      uniqueMetDict,
+      uniqueMetabolites,
+    );
+  });
 
   // create compartmentalizedMetabolite file
   writer.writeMetaboliteCSV(content, outputPath);
@@ -107,19 +147,27 @@ const parseModelFiles = (modelDir) => {
 
   // ========================================================================
   // CM-M relationships
-  writer.writeMetaboliteMetaboliteRelCSV(content, uniqueCompartmentalizedMap, outputPath);
+  writer.writeMetaboliteMetaboliteRelCSV(
+    content,
+    uniqueCompartmentalizedMap,
+    outputPath,
+  );
 
   // delete compartmentlizedMetabolites, add unique metabolites
   content.metabolite = uniqueMetabolites;
   delete content.compartmentalizedMetabolite;
 
   // write reactants-reaction, reaction-products, reaction-genes, reaction-susbsystems relationships files
-  const [reactionReactantRecords, reactionProductRecords, reactionGeneRecords, reactionSubsystemRecords] = utils.getReactionRel(content);
+  const [
+    reactionReactantRecords,
+    reactionProductRecords,
+    reactionGeneRecords,
+    reactionSubsystemRecords,
+  ] = utils.getReactionRel(content);
   writer.writeRRCSV(reactionReactantRecords, outputPath);
   writer.writeRPCSV(reactionProductRecords, outputPath);
   writer.writeRGCSV(reactionGeneRecords, outputPath);
   writer.writeRSCSV(reactionSubsystemRecords, outputPath);
-
 
   // ========================================================================
   // write nodes files
@@ -130,7 +178,13 @@ const parseModelFiles = (modelDir) => {
   });
 
   // TODO generate instructions more dynamically
-  instructions = cypher.getModelCypherInstructions(prefix, dropIndexes, model, version, instructions);
+  instructions = cypher.getModelCypherInstructions(
+    prefix,
+    dropIndexes,
+    model,
+    version,
+    instructions,
+  );
 };
 
 // ========================================================================
@@ -138,7 +192,7 @@ const parseModelFiles = (modelDir) => {
 const args = [];
 try {
   for (let i = 0; i < process.argv.length; i += 1) {
-    if (process.argv[i] === "--reset-db") {
+    if (process.argv[i] === '--reset-db') {
       dropIndexes = true;
     } else {
       args.push(process.argv[i]);
@@ -146,12 +200,11 @@ try {
   }
   inputDir = args[2] + '/integrated-models';
 } catch {
-  console.log("Usage: yarn start input_dir");
-  console.log("Usage: yarn start input_dir --reset-db");
-  return;
+  console.log('Usage: yarn start input_dir');
+  console.log('Usage: yarn start input_dir --reset-db');
 }
 
-if (!fs.existsSync(`${outDir}`)){
+if (!fs.existsSync(`${outDir}`)) {
   fs.mkdirSync(`${outDir}`);
 }
 
@@ -159,7 +212,7 @@ if (!fs.existsSync(`${outDir}`)){
 // main procedure
 try {
   const intputDirFiles = fs.readdirSync(inputDir);
-  for(let i = 0; i < intputDirFiles.length; i++) {
+  for (let i = 0; i < intputDirFiles.length; i++) {
     const filePath = path.join(inputDir, intputDirFiles[i]);
     const stat = fs.lstatSync(filePath);
     if (stat.isDirectory() && intputDirFiles[i][0] != '.') {
@@ -167,13 +220,13 @@ try {
     }
   }
   instructions = cypher.getRemainCypherInstructions(instructions);
+  createTimelineChart(inputDir);
 } catch (e) {
   if (e.mark) {
     // avoid to print the whole yaml into console
     e.mark.buffer = '';
   }
   console.log(e);
-  return;
 }
 
 // ========================================================================
