@@ -18,7 +18,11 @@ const createTimelineChart = async (integratedModelsPath) => {
   const fakeDom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
   const body = (await d3).select(fakeDom.window.document).select('body');
 
-  let svg = body.append('svg').attr('width', WIDTH).attr('height', HEIGHT);
+  // + 1 is needed or else the bottom axis appears hidden
+  let svg = body
+    .append('svg')
+    .attr('width', WIDTH)
+    .attr('height', HEIGHT + 1);
 
   svg = addBranchPoints(svg);
   svg = addGemVersions(svg);
