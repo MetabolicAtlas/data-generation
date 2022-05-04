@@ -76,7 +76,7 @@ const createTimeScale = () => {
   const earliestDate = allVersionDates.sort((a, b) => a - b)[0];
   const timePadding = 60 * 60 * 24 * 30 * 3 * 1000; // 3 months
   const startDate = new Date(earliestDate - timePadding);
-  const currentDate = new Date();
+  const currentDate = new Date(Date.now() + timePadding);
   return d3.scaleTime().domain([startDate, currentDate]).range([0, WIDTH]);
 };
 
