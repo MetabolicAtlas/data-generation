@@ -110,6 +110,11 @@ const addGemsAxis = (svg) => {
     .style('font-weight', 'bold')
     .call(yAxisLeft);
 
+  // The following commented out code adds a vertical axis on the right side of
+  // the chart. It does not seem like an improvment  to include it at the moment
+  // (2022-05-05). The code is kept for convenience in case the opinion would
+  // change in the future.
+  //
   // const yScaleRight = d3.scaleLinear().domain([0, HEIGHT]).range([HEIGHT, 0]);
   // const yAxisRight = d3
   //   .axisLeft(yScaleRight)
