@@ -52,7 +52,7 @@ const setGems = (integratedModelsPath) => {
 
 const getHeight = () => GEMS.length * 50 + 100;
 
-const getModelFromId = (id) => id.split('-')[0];
+const getModelFromId = (id) => id.match(/\w+-\w+/)[0];
 
 const getGemPositions = () =>
   GEMS.reduce(
@@ -79,7 +79,7 @@ const createTimeScale = () => {
   const allVersionDates = GEMS.flat().map((v) => new Date(v.releaseDate));
   const earliestDate = allVersionDates.sort((a, b) => a - b)[0];
   const timePadding = 60 * 60 * 24 * 30 * 3 * 1000; // 3 months
-  const startDate = new Date(earliestDate - timePadding);
+  const startDate = new Date(earliestDate - 2 * timePadding);
   const currentDate = new Date(Date.now() + timePadding);
   return d3.scaleTime().domain([startDate, currentDate]).range([0, WIDTH]);
 };
@@ -205,7 +205,7 @@ const addGemVersions = (svg) => {
       })
       .attr('cy', y)
       .attr('cx', (d) => TIME_SCALE(d))
-      .attr('data-model', (_d, i) => versions[i].id.match(/\w+-\w+/)[0])
+      .attr('data-model', (_d, i) => getModelFromId(versions[i].id))
       .attr('data-version', (_d, i) => versions[i].id.split('-')[2])
       .attr('data-release-date', (_d, i) => versions[i].releaseDate)
       .attr('data-release-link', (_d, i) => versions[i].releaseLink)
