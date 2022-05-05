@@ -56,8 +56,8 @@ const getModelFromId = (id) => id.split('-')[0];
 
 const getGemPositions = () =>
   GEMS.reduce(
-    (acc, [v], i) => ({
-      ...acc,
+    (positions, [v], i) => ({
+      ...positions,
       [getModelFromId(v.id)]: HEIGHT - (i + 1) * 50,
     }),
     {},
