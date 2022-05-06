@@ -89,6 +89,7 @@ const addTimeAxis = (svg) => {
   svg
     .append('g')
     .attr('transform', `translate(0, ${HEIGHT})`)
+    .style('font-size', '14px')
     .style('font-weight', 'bold')
     .call(xAxis);
   return svg;
@@ -106,7 +107,7 @@ const addGemsAxis = (svg) => {
     .tickFormat((x) => kvFlippedGemPositions[x]);
   svg
     .append('g')
-    .style('font-size', '12px')
+    .style('font-size', '14px')
     .style('font-weight', 'bold')
     .call(yAxisLeft);
 
