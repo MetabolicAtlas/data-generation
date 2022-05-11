@@ -3,7 +3,8 @@ import path from 'path';
 import * as d3 from 'd3';
 import { JSDOM } from 'jsdom';
 
-const outputPath = 'gemRepository/integratedModelsTimeline.svg';
+const outputDir = 'gemRepository';
+const outputPath = `${outputDir}/integratedModelsTimeline.svg`;
 const d3Curve = d3.line().curve(d3.curveNatural);
 const WIDTH = 1500;
 let GEMS, HEIGHT, GEM_POSITIONS, BRANCH_POINTS, TIME_SCALE;
@@ -29,6 +30,9 @@ const createTimelineChart = async (integratedModelsPath) => {
   svg = addTimeAxis(svg);
   svg = addGemsAxis(svg);
 
+  if (!fs.existsSync(`${outputDir}`)) {
+    fs.mkdirSync(`${outputDir}`);
+  }
   fs.writeFileSync(outputPath, body.html());
 };
 
