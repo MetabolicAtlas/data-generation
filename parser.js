@@ -26,7 +26,7 @@ const getInfoFromYaml = (yamlFile) => {
   ];
 };
 
-const getComponentSvgRel = (content, component, svgNodes, modelDir) => {
+const getComponentSvgRel = (content, component, svgNodes, modelDir, metadataSection) => {
   // get SVG files for compartments and subsystems
   const filename = `${component}SVG.tsv`;
   const mappingFile = utils.getFile(modelDir, filename);

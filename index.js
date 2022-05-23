@@ -69,6 +69,7 @@ const parseModelFiles = (modelDir) => {
       component,
       svgNodes,
       modelDir,
+      metadataSection
     );
     writer.writeComponentSvgCSV(svgRels, outputPath, component);
   });
