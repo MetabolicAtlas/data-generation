@@ -2,9 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 const DATA_TYPE_COMPONENTS = {
-  transcriptomics: 'gene',
-  metabolomics: 'compartmentalizedMetabolite',
-  fluxomics: 'reaction',
+  gene: 'gene',
+  metabolite: 'compartmentalizedMetabolite',
+  reaction: 'reaction',
 };
 
 /*
