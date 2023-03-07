@@ -4,17 +4,16 @@ requiredyarnver=1.22
 requirednodever=v12
 
 # Check versions
-version_greater_equal()
-{
-  printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
-  if [ $? -eq 1 ] ; then
-      echo "Error! Need $3 version $2 or above"
-      exit 1
-    fi
+version_greater_equal () {
+  if ! printf '%s\n' "$2" "$1" | sort -c -V 2>/dev/null
+  then
+      printf 'Error! Need %s version %s or above\n' "$3" "$2" >&2
+      return 1
+  fi
 }
 
-version_greater_equal "$(yarn --version)" ${requiredyarnver} "yarn"
-version_greater_equal "$(node --version)" ${requirednodever} "node"
+version_greater_equal "$(yarn --version)" "$requiredyarnver" "yarn" || exit
+version_greater_equal "$(node --version)" "$requirednodever" "node" || exit
 
 # Install
 yarn
