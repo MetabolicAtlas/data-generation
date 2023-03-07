@@ -18,7 +18,8 @@ version_greater_equal "$(node --version)" "$requirednodever" "node" || exit
 # Install
 yarn
 
-# Generate data using '../data-files' as default path
-DF=${1-../data-files}
-echo "Using data files from ${DF}"
-yarn start "${DF}"
+# Generate data using ../data-files as default path
+DF=${1:-../data-files}
+printf 'Using data files from %s\n' "$DF"
+
+yarn start "$DF"
