@@ -270,9 +270,8 @@ const getComponentExternalDb = (
         for (var externalId of externalIdArr) {
           var url = "";
           if (dbPrefix != "" && externalId != "") {
-            const urlMap = `https://identifiers.org/${dbPrefix}/${suffix}`;
+            const urlMap = `https://identifiers.org/${dbPrefix}${suffix}`;
             url = `${urlMap}:${externalId}`;
-            console.log(url);
           }
 
           const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
