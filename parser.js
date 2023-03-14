@@ -1,7 +1,7 @@
 import yaml from "js-yaml";
 import fs from "fs";
 import * as utils from "./utils.js";
-import { dbIdentifiersDict } from "./identifiers.js";
+import { crossReferencesDict } from "./identifiers.js";
 
 const getInfoFromYaml = (yamlFile) => {
   // extract information from the YAML file
@@ -247,7 +247,18 @@ const getComponentExternalDb = (
         ) {
           continue;
         }
-        const dbName = dbIdentifiersDict[fcomponent]["dbname_map"][header];
+        const crossReferencesArray = Object.values(crossReferencesDict);
+        const referenceData = crossReferencesArray.find((item) =>
+          item.headers.includes(header)
+        );
+        const dbName = referenceData ? referenceData.name : "";
+        const dbPrefix = referenceData ? referenceData.dbPrefix : "";
+        const suffix =
+          fcomponent == "gene"
+            ? referenceData.geneSuffix
+            : fcomponent == "reaction"
+            ? referenceData.reactionSuffix
+            : referenceData.compoundSuffix;
         const rawExternalId = utils.cleanExternalId(contentArr[j], dbName);
         if (rawExternalId == "") {
           //ignore the record whithout any valid externalId
@@ -257,13 +268,11 @@ const getComponentExternalDb = (
         const externalIdArr = rawExternalId.split(";").map((e) => e.trim());
 
         for (var externalId of externalIdArr) {
-          const url_prefix = dbIdentifiersDict[fcomponent]["url_map"][header];
           var url = "";
-          if (url_prefix != "" && externalId != "") {
-            url =
-              dbIdentifiersDict[fcomponent]["url_map"][header] +
-              ":" +
-              externalId;
+          if (dbPrefix != "" && externalId != "") {
+            const urlMap = `https://identifiers.org/${dbPrefix}/${suffix}`;
+            url = `${urlMap}:${externalId}`;
+            console.log(url);
           }
 
           const externalDbEntryKey = `${dbName}${externalId}${url}`; // diff url leads to new nodes!
