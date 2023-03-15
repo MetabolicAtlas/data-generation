@@ -251,7 +251,7 @@ const getComponentExternalDb = (
         const referenceData = crossReferencesArray.find((item) =>
           item.headers.includes(header)
         );
-        const dbName = referenceData ? referenceData.name : "";
+        const dbName = referenceData ? referenceData.db : "";
         const dbPrefix = referenceData ? referenceData.dbPrefix : "";
         const suffix =
           fcomponent == "gene"
