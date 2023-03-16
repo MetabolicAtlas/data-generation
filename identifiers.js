@@ -31,10 +31,18 @@ const crossReferencesDict = {
     reactionSuffix: "",
     geneSuffix: "",
   },
-  recon3d: {
-    headers: ["rxnRecon3DID", "metRecon3DID"],
+  recon3dreact: {
+    headers: ["rxnRecon3DID"],
     db: "Recon3D",
     dbPrefix: "vmhreaction",
+    compoundSuffix: "",
+    reactionSuffix: "",
+    geneSuffix: "",
+  },
+  recon3dmet: {
+    headers: ["metRecon3DID"],
+    db: "Recon3D",
+    dbPrefix: "vmhmetabolite",
     compoundSuffix: "",
     reactionSuffix: "",
     geneSuffix: "",
