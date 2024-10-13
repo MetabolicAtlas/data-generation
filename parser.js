@@ -5,7 +5,7 @@ import { crossReferencesDict } from "./identifiers.js";
 
 const getInfoFromYaml = (yamlFile) => {
   // extract information from the YAML file
-  const [metadata, metabolites, reactions, genes, compartments] = yaml.safeLoad(
+  const [metadata, metabolites, reactions, genes, compartments] = yaml.load(
     fs.readFileSync(yamlFile, "utf8")
   );
   const metadataSection = metadata.metaData || metadata.metadata;

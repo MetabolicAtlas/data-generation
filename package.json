@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "csv-writer": "^1.6.0",
-    "d3": "^7.4.4",
-    "js-yaml": "^3.13.1",
-    "jsdom": "^19.0.0"
+    "d3": "^7.9.0",
+    "js-yaml": "^4.1.0",
+    "jsdom": "^25.0.1"
   },
   "type": "module"
 }
