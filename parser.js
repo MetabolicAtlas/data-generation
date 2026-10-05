@@ -205,7 +205,7 @@ const getComponentExternalDb = (
         continue;
       } else if (i == 0) {
         /*read the header line*/
-        headerArr = lines[i].split("\t").map((e) => e.trim());
+        headerArr = lines[i].split("\t").map((e) => utils.trim(e, ' \t\r"'));
         continue;
       } else {
         contentArr = lines[i].split("\t").map((e) => utils.trim(e, '"'));

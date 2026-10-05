@@ -115,6 +115,18 @@ const reformatCompartmentalizedMetaboliteObjets = (data) => {
   });
 };
 
+// EC codes come as a list or a ";"-separated string; the frontend splits on "; "
+const formatEcCodes = (eccodes) => {
+  if (!eccodes) {
+    return eccodes;
+  }
+  const codes = Array.isArray(eccodes) ? eccodes : String(eccodes).split(";");
+  return codes
+    .map((e) => String(e).trim())
+    .filter(Boolean)
+    .join("; ");
+};
+
 const reformatReactionObjets = (data) => {
   return data.map((r) => {
     // reactionId,name,reversible,lowerBound,upperBound,geneRule,ec
@@ -128,7 +140,7 @@ const reformatReactionObjets = (data) => {
       upperBound: r.upper_bound,
       geneRule: r.gene_reaction_rule,
       reversible: r.lower_bound === -1000,
-      ec: r.eccodes,
+      ec: formatEcCodes(r.eccodes),
       references: r.references,
       subsystems: r.subsystem
         ? Array.isArray(r.subsystem)
