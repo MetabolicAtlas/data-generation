@@ -160,7 +160,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   model_seed: {
-    headers: [],
+    headers: ["metSeedID", "rxnSeedID"],
     db: "ModelSEED",
     dbPrefix: "seed",
     compoundSuffix: ".compound",
