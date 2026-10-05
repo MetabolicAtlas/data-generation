@@ -132,6 +132,10 @@ const reformatReactionObjets = (data) => {
     // reactionId,name,reversible,lowerBound,upperBound,geneRule,ec
     r = mergedObjects(r);
     r.metabolites = mergedObjects(r.metabolites);
+    // RAVEN 3 and raven-toolbox write EC codes as annotation/ec-code instead of eccodes
+    const annotation = Array.isArray(r.annotation)
+      ? mergedObjects(r.annotation)
+      : r.annotation || {};
     return {
       reactionId: r.id,
       name: r.name,
@@ -140,7 +144,7 @@ const reformatReactionObjets = (data) => {
       upperBound: r.upper_bound,
       geneRule: r.gene_reaction_rule,
       reversible: r.lower_bound === -1000,
-      ec: formatEcCodes(r.eccodes),
+      ec: formatEcCodes(r.eccodes ?? annotation["ec-code"]),
       references: r.references,
       subsystems: r.subsystem
         ? Array.isArray(r.subsystem)
