@@ -51,10 +51,11 @@ def main():
     work = tempfile.mkdtemp(prefix="maps-")
     tables = model_dir
     reactions = os.path.join(model_dir, "reactions.tsv")
-    if not os.path.exists(reactions) or sum(1 for _ in open(reactions)) < 2:  # releases without TSV files
+    lines = open(reactions).read().splitlines() if os.path.exists(reactions) else []
+    if len(lines) < 2 or lines[0].split("\t")[0].strip('"') == "id":  # no TSV files, or yeast-GEM's: written from the YAML
         tables = os.path.join(work, "model-tables")
-        subprocess.run([sys.executable, os.path.join(HERE, "yaml_to_tsv.py"), os.path.join(model_dir, yaml_file), tables],
-                       check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([sys.executable, os.path.join(HERE, "yaml_to_tsv.py"), os.path.join(model_dir, yaml_file), tables,
+                        model_dir], check=True, stdout=subprocess.DEVNULL)
     counts, removed = {}, {}
     for kind in ("subsystem", "compartment"):
         maps = listed_maps(os.path.join(model_dir, f"{kind}SVG.tsv"))

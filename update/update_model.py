@@ -179,6 +179,13 @@ def has_rows(path):
     return bool(table_lines(path))
 
 
+def human_gem_columns(path):
+    """Whether a model table has rows and Human-GEM's column names (rxns, rxnKEGGID, ...), which the
+    map editor reads; yeast-GEM's tables start with an id column named after the annotation keys."""
+    lines = table_lines(path)
+    return bool(lines) and lines[0][1][0].strip('"') != "id"
+
+
 def ragged_rows(path):
     """(line number, id, fields, header fields) of rows whose field count differs from the header."""
     lines = table_lines(path)
@@ -244,10 +251,10 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
     shutil.rmtree(work_maps, ignore_errors=True)
     os.makedirs(out)
     tables = model_dir
-    if not has_rows(os.path.join(model_dir, "reactions.tsv")):  # releases without TSV files: written from the YAML
+    if not human_gem_columns(os.path.join(model_dir, "reactions.tsv")):  # the editor's tables, written from the YAML
         tables = os.path.join(work_maps, "model-tables")
-        subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "yaml_to_tsv.py"), new_yaml, tables],
-                       check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "yaml_to_tsv.py"), new_yaml, tables,
+                        model_dir], check=True, stdout=subprocess.DEVNULL)
     boxed = any(b'class="compartment"' in open(m, "rb").read() for m in maps if b"data-transport=" not in open(m, "rb").read(3000))
     gene_label = args.gene_label or ("name" if boxed else "both")
     cmd = [sys.executable, os.path.join(DATA_GENERATION, "maps", "mapedit.py"), new_yaml, tables, old_yaml,
