@@ -87,10 +87,11 @@ const reformatCompartmentObjets = (data) => {
 
 const reformatGeneObjets = (data) => {
   return data.map((g) => {
-    const id = Object.values(g[0])[0];
+    g = mergedObjects(g);
     return {
-      geneId: id,
-      name: '',
+      geneId: g.id,
+      // a Human-GEM style genes.tsv replaces the name with its gene symbol
+      name: g.name || '',
       alternateName: '',
       synonyms: '',
       function: '',
@@ -127,6 +128,15 @@ const formatEcCodes = (eccodes) => {
     .join("; ");
 };
 
+// PubMed ids under annotation/pubmed (a list or one id) as a references text, "PMID:1;PMID:2"
+const formatPubmed = (pubmed) => {
+  if (pubmed === undefined || pubmed === null || pubmed === "") {
+    return undefined;
+  }
+  const ids = Array.isArray(pubmed) ? pubmed : [pubmed];
+  return ids.map((e) => `PMID:${String(e).trim()}`).join(";");
+};
+
 const reformatReactionObjets = (data) => {
   return data.map((r) => {
     // reactionId,name,reversible,lowerBound,upperBound,geneRule,ec
@@ -145,7 +155,8 @@ const reformatReactionObjets = (data) => {
       geneRule: r.gene_reaction_rule,
       reversible: r.lower_bound === -1000,
       ec: formatEcCodes(r.eccodes ?? annotation["ec-code"]),
-      references: r.references,
+      // yeast-GEM writes PubMed ids as annotation/pubmed instead of references
+      references: r.references ?? formatPubmed(annotation.pubmed),
       subsystems: r.subsystem
         ? Array.isArray(r.subsystem)
           ? r.subsystem
@@ -284,6 +295,7 @@ export {
   toLabelCase,
   trim,
   cleanExternalId,
+  formatEcCodes,
   reformatGeneObjets,
   reformatCompartmentObjets,
   reformatCompartmentalizedMetaboliteObjets,

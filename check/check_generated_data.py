@@ -106,6 +106,14 @@ def gpr_genes(rule):
     return {t for t in re.split(r"[\s()]+", rule or "") if t and t not in ("and", "or")}
 
 
+def references_text(reaction):
+    """references, or the PubMed ids under annotation/pubmed (yeast-GEM) as "PMID:1;PMID:2"."""
+    if reaction.get("references") is not None:
+        return as_text(reaction.get("references"))
+    ids = as_list((reaction.get("annotation") or {}).get("pubmed"))
+    return ";".join(f"PMID:{as_text(i).strip()}" for i in ids)
+
+
 def pmids(references):
     out = set()
     for ref in str(references or "").split(";"):
@@ -148,6 +156,11 @@ def read_tsv(path):
             row[None] = len(values)
         rows.append(row)
     return header, rows
+
+
+def is_keyed(header):
+    """yeast-GEM's tables: an id column, then columns named after the annotation keys."""
+    return bool(header) and header[0] == "id"
 
 
 def read_map_tsv(path):
@@ -350,9 +363,33 @@ def check_components(rep, m, run):
                      {(r["reactionId"], r["subsystemId"]) for r in run.csv("reactionSubsystems")})
 
 
-def check_reactions(rep, m, run):
+def check_gene_names(rep, model_dir, m, run):
+    """Gene symbol, name and aliases from a Human-GEM style genes.tsv, else the name in the YAML."""
+    header, rows = read_tsv(os.path.join(model_dir, "genes.tsv"))
+    table = {} if not header or is_keyed(header) else {r[header[0]]: r for r in rows}
+    states = {r["geneId"]: r for r in run.csv("geneStates")}
+    bad = []
+    for g, gene in m["genes"].items():
+        if g in table:
+            expected = (table[g].get("geneSymbols", ""), table[g].get("geneNames", ""),
+                        table[g].get("geneAliases", ""))
+        else:
+            expected = (as_text(gene.get("name")), "", "")
+        s = states.get(g)
+        if s is None or (s["name"], s["alternateName"], s["synonyms"]) != expected:
+            bad.append(g)
+    named = sum(1 for s in states.values() if s["name"])
+    rep.check("gene symbol, name and aliases", not bad,
+              f"{len(bad)} differ: {', '.join(sorted(bad)[:5])}" if bad
+              else f"{len(states)} checked, {named} with a name")
+
+
+def check_reactions(rep, model_dir, m, run):
     rep.section("Reactions")
     rxns = m["reactions"]
+    header, rows = read_tsv(os.path.join(model_dir, "reactions.tsv"))
+    # yeast-GEM's reactions.tsv has the EC codes that its YAML no longer has
+    table_ec = {r["id"]: r.get("ec-code", "") for r in rows} if is_keyed(header) else {}
     states = {r["reactionId"]: r for r in run.csv("reactionStates")}
     fields = collections.Counter()
     for i, r in rxns.items():
@@ -367,8 +404,10 @@ def check_reactions(rep, m, run):
             "geneRule": as_text(r.get("gene_reaction_rule")),
             "reversible": "true" if r.get("lower_bound") == -1000 else "false",
             # RAVEN 3 and raven-toolbox write EC codes as annotation/ec-code
-            "ec": format_ec(r.get("eccodes") or (r.get("annotation") or {}).get("ec-code")),
-            "references": as_text(r.get("references")),
+            "ec": format_ec(r.get("eccodes") or (r.get("annotation") or {}).get("ec-code"))
+            or format_ec(table_ec.get(i)),
+            # yeast-GEM writes PubMed ids as annotation/pubmed
+            "references": references_text(r),
         }
         for k, v in expected.items():
             if s[k] != v:
@@ -393,7 +432,7 @@ def check_reactions(rep, m, run):
                      {(i, g) for i, r in rxns.items() for g in gpr_genes(r.get("gene_reaction_rule"))},
                      {(r["reactionId"], r["geneId"]) for r in run.csv("reactionGenes")})
 
-    expected = {(i, p) for i, r in rxns.items() for p in pmids(r.get("references"))}
+    expected = {(i, p) for i, r in rxns.items() for p in pmids(references_text(r))}
     rep.compare_sets("reaction PubMed links", expected,
                      {(r["reactionId"], r["pubmedReferenceId"]) for r in run.csv("reactionPubmedReferences")})
     # PubMed nodes are shared between models, so read every model's file
@@ -419,21 +458,27 @@ def check_xrefs(rep, model_dir, m, run, identifiers):
         ragged = [r[header[0]] for r in rows if len(r) != len(header) or None in r]
         rep.check(f"{filename}: every row has {len(header)} columns", not ragged,
                   f"{len(ragged)} rows differ: {', '.join(ragged[:5])}" if ragged else "")
-        columns = [h for h in header[1:] if re.search(XREF_HEADER[component], h)]
-        unknown = [h for h in columns if h not in identifiers]
-        rep.check(f"{filename}: every cross-reference column is known to identifiers.js", not unknown,
-                  ", ".join(unknown))
+        keyed = is_keyed(header)
+        if keyed:
+            # columns named after annotation keys: those identifiers.js knows are cross-references
+            columns = [h for h in header[1:] if h in identifiers]
+        else:
+            columns = [h for h in header[1:] if re.search(XREF_HEADER[component], h)]
+            unknown = [h for h in columns if h not in identifiers]
+            rep.check(f"{filename}: every cross-reference column is known to identifiers.js", not unknown,
+                      ", ".join(unknown))
         skipped = [h for h in header[1:] if h not in columns]
         if skipped:
             rep.text(f"  - {filename}: columns not imported as cross-references: {', '.join(skipped)}")
-        if component == "gene":
+        if component == "gene" and not keyed:
+            # Human-GEM's gene ids are Ensembl and Protein Atlas ids
             columns += ["geneEnsemblID", "geneProteinAtlasID"]
         expected = set()
         for row in rows:
             i = row[header[0]]
             if i not in ids[component]:
                 continue
-            if component == "gene":
+            if component == "gene" and not keyed:
                 row = dict(row, geneEnsemblID=i, geneProteinAtlasID=i)
             for h in columns:
                 db = identifiers.get(h)
@@ -452,15 +497,6 @@ def check_xrefs(rep, model_dir, m, run, identifiers):
             header_line = open(os.path.join(model_dir, filename)).readline()
             if '"' in header_line:
                 rep.text("  - genes.tsv has a quoted header line; data-generation must unquote it")
-        genes_tsv = {r[header[0]]: r for r in rows} if component == "gene" else None
-        if genes_tsv is not None:
-            states = {r["geneId"]: r for r in run.csv("geneStates")}
-            bad = [g for g in ids["gene"] if g in genes_tsv and (
-                states[g]["name"], states[g]["alternateName"], states[g]["synonyms"]) != (
-                genes_tsv[g].get("geneSymbols", ""), genes_tsv[g].get("geneNames", ""),
-                genes_tsv[g].get("geneAliases", ""))]
-            rep.check("gene symbol, name and aliases", not bad,
-                      f"{len(bad)} differ: {', '.join(sorted(bad)[:5])}" if bad else f"{len(states)} checked")
 
 
 def check_maps(rep, model_dir, data_files, model, m, run):
@@ -633,7 +669,8 @@ def main():
 
     check_metadata(rep, args.model, m, run, args.data_files)
     check_components(rep, m, run)
-    check_reactions(rep, m, run)
+    check_gene_names(rep, model_dir, m, run)
+    check_reactions(rep, model_dir, m, run)
     check_xrefs(rep, model_dir, m, run, identifiers)
     if duplicates:
         rep.warn("identifiers.js lists these headers more than once: " + "; ".join(duplicates))
