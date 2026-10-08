@@ -182,6 +182,11 @@ def main():
                         dest='is_show_updatable_model', default=False,
                         help='show updatable models',
                         action='store_true')
+    parser.add_argument('--data-files', dest='data_files',
+                        default=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+                            os.path.abspath(__file__)))), 'data-files'),
+                        help='data-files checkout to write gemRepository.json into '
+                             '(default: data-files next to data-generation)')
 
     args = parser.parse_args()
     is_dryrun = args.is_dryrun
@@ -193,8 +198,7 @@ def main():
         api_token = None
 
     git_api = Github(api_token)
-    rundir = os.path.dirname(sys.argv[0])
-    basedir = os.path.realpath(os.path.join(rundir, os.pardir))
+    basedir = os.path.realpath(args.data_files)
 
     if is_show_updatable_model:
         show_updatable_models(git_api, basedir)

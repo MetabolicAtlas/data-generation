@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write the pull-request description for a model update prepared by update_model.py.
 
-Used by .github/workflows/update-model.yml. The description says what the update
+Used by the update-model workflow of MetabolicAtlas/data-files. The description says what the update
 script did, what (if anything) needs a manual fix, summarises the check report, and
 gives the steps to test the update in a local deployment.
 

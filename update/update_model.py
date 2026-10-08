@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Update one integrated model in data-files to a released version, and check the result.
+"""Update one integrated model in a data-files checkout to a released version, and check the result.
 
-Steps, in order (see UPDATING_MODELS.md for the full procedure):
+Steps, in order (see UPDATING_MODELS.md in data-files for the full procedure):
   1. Baseline: run data-generation on the files as they are, and keep a copy of the
      current model files, so the new version can be compared with the old one.
   2. Download the model files of the release (model/*.yml, genes.tsv,
@@ -19,10 +19,10 @@ Steps, in order (see UPDATING_MODELS.md for the full procedure):
   7. Run data-generation on the updated files, then its check/check_generated_data.py,
      which compares the output with the model files and with the baseline.
 
-Usage:
-    python utils/update_model.py --model Human-GEM --version 2.0.0
-    python utils/update_model.py --model Human-GEM --version 2.0.0 --keep-files
-    python utils/update_model.py --model Human-GEM --latest-version   # print the latest release, if newer
+Usage, in data-generation, with data-files checked out next to it (or given with --data-files):
+    python update/update_model.py --model Human-GEM --version 2.0.0
+    python update/update_model.py --model Human-GEM --version 2.0.0 --keep-files
+    python update/update_model.py --model Human-GEM --latest-version   # print the latest release, if newer
 
 Exit status: 0 when every hard check passed, 1 when a check failed, 2 when the model
 files need a manual fix first.
@@ -42,7 +42,8 @@ import urllib.error
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA_FILES = os.path.dirname(HERE)
+DATA_GENERATION = os.path.dirname(HERE)  # this checkout: data-generation, its check script and the map tools
+DATA_FILES = os.path.join(os.path.dirname(DATA_GENERATION), "data-files")  # set from --data-files
 TABLES = ("genes.tsv", "metabolites.tsv", "reactions.tsv")
 OWNER = "SysBioChalmers"
 
@@ -228,7 +229,7 @@ def preflight(args, model_dir):
 
 
 def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
-    """Fit the model's SVG maps to the new version with utils/maps/mapedit.py (rules in utils/maps/RULES.md).
+    """Fit the model's SVG maps to the new version with maps/mapedit.py (rules in maps/RULES.md).
 
     The maps in svg/<model> are replaced by the edited ones; the change list (edited/changes.tsv), copies
     with the changes highlighted (edited/*.review.svg) and a summary stay in work_maps."""
@@ -245,11 +246,11 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
     tables = model_dir
     if not has_rows(os.path.join(model_dir, "reactions.tsv")):  # releases without TSV files: written from the YAML
         tables = os.path.join(work_maps, "model-tables")
-        subprocess.run([sys.executable, os.path.join(HERE, "maps", "yaml_to_tsv.py"), new_yaml, tables],
+        subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "yaml_to_tsv.py"), new_yaml, tables],
                        check=True, stdout=subprocess.DEVNULL)
     boxed = any(b'class="compartment"' in open(m, "rb").read() for m in maps if b"data-transport=" not in open(m, "rb").read(3000))
     gene_label = args.gene_label or ("name" if boxed else "both")
-    cmd = [sys.executable, os.path.join(HERE, "maps", "mapedit.py"), new_yaml, tables, old_yaml,
+    cmd = [sys.executable, os.path.join(DATA_GENERATION, "maps", "mapedit.py"), new_yaml, tables, old_yaml,
            "--maps", *maps, "--out", out, "--review",
            "--map-table", os.path.join(model_dir, "subsystemSVG.tsv"),
            "--compartment-table", os.path.join(model_dir, "compartmentSVG.tsv"),
@@ -277,7 +278,7 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
                   if line.count("\t") >= 2 and not line.startswith(("#", "@"))]
         template = next(os.path.join(svg_dir, f) for f in listed
                         if os.path.join(svg_dir, f) in maps and os.path.join(svg_dir, f) not in transport)
-        result = subprocess.run([sys.executable, os.path.join(HERE, "maps", "transport_map.py"), new_yaml, tables,
+        result = subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "transport_map.py"), new_yaml, tables,
                                  template, svg_dir, os.path.join(model_dir, "subsystemSVG.tsv"), "--gene-label", gene_label],
                                 capture_output=True, text=True)
         if result.returncode:
@@ -290,7 +291,8 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
                                   if len(r) > 2 and r[1] not in ("review", "error") and r[2] != "connection passes")
     review = collections.Counter(r[2] for r in rows if len(r) > 2 and r[1] == "review")
     errors = [r[0] for r in rows if len(r) > 1 and r[1] == "error"]
-    lines = [f"{edited} of {len(maps)} maps changed{transport_note}. The rules are listed in utils/maps/RULES.md; "
+    lines = [f"{edited} of {len(maps)} maps changed{transport_note}. The rules are listed in maps/RULES.md of "
+             "[data-generation](https://github.com/MetabolicAtlas/data-generation); "
              "the workflow artifact holds the full change list and copies of the maps with the changes highlighted.", "",
              "| rule | change | count |", "|---|---|---|"]
     lines += [f"| {k[0]} | {k[1]} | {n} |" for k, n in sorted(changes.items(), key=lambda x: (x[0][0][0], int(x[0][0][1:]) if x[0][0][1:].isdigit() else 0))]
@@ -307,15 +309,18 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
 
 
 def main():
+    global DATA_FILES
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", required=True, help="folder in integrated-models and repository name, e.g. Human-GEM")
     ap.add_argument("--version", help="release to update to, e.g. 2.0.0")
     ap.add_argument("--latest-version", action="store_true",
                     help="only print the latest release if it is newer than the integrated version (nothing if up to date)")
-    ap.add_argument("--data-generation", default=os.path.join(os.path.dirname(DATA_FILES), "data-generation"),
-                    help="data-generation checkout (default: next to data-files)")
-    ap.add_argument("--work-dir", default=os.path.join(os.path.dirname(DATA_FILES), "model-update-work"),
-                    help="where the baseline and generated data go (default: next to data-files)")
+    ap.add_argument("--data-files", default=DATA_FILES,
+                    help="data-files checkout whose model is updated (default: data-files next to data-generation)")
+    ap.add_argument("--data-generation", default=DATA_GENERATION,
+                    help="data-generation checkout that generates and checks the data (default: this one)")
+    ap.add_argument("--work-dir",
+                    help="where the baseline and generated data go (default: model-update-work next to data-files)")
     ap.add_argument("--keep-files", action="store_true",
                     help="do not download; use the model files in data-files as they are (after a manual fix)")
     ap.add_argument("--date", help="date to use instead of the one in the release YAML (YYYY-MM-DD)")
@@ -324,19 +329,22 @@ def main():
     ap.add_argument("--gene-label", choices=["name", "orf", "both"],
                     help="gene boxes on the maps: gene name, gene id, or name over id (default: name, or both for "
                          "maps without compartment boxes, such as Yeast-GEM's)")
-    ap.add_argument("--kegg-dir", help="KGML cache made by utils/maps/kegg_fetch.py: added reactions that a KEGG map "
+    ap.add_argument("--kegg-dir", help="KGML cache made by maps/kegg_fetch.py: added reactions that a KEGG map "
                                        "of their subsystem shows keep KEGG's arrangement")
     ap.add_argument("--baseline-data-files",
                     help="generate the baseline from this data-files checkout (e.g. of main) instead of the "
                          "current files; needed with --keep-files when no earlier baseline exists")
     args = ap.parse_args()
+    DATA_FILES = os.path.abspath(args.data_files)
+    if not os.path.isfile(os.path.join(DATA_FILES, "integrated-models", "integratedModels.json")):
+        fail(f"{DATA_FILES} is not a data-files checkout; give one with --data-files")
     if args.latest_version:
         print(latest_version(args.model) or "")
         return
     if not args.version:
         ap.error("--version is required")
     args.data_generation = os.path.abspath(args.data_generation)
-    work = os.path.abspath(args.work_dir)
+    work = os.path.abspath(args.work_dir or os.path.join(os.path.dirname(DATA_FILES), "model-update-work"))
     model_dir = os.path.join(DATA_FILES, "integrated-models", args.model)
 
     log(f"Updating {args.model} to {args.version}")
@@ -485,7 +493,8 @@ def main():
         check += ["--metabolicatlas", metabolicatlas]
     status = subprocess.run(check).returncode
     log(f"\nReport: {report}")
-    log("Next: read the report, commit the changes in data-files, and run the Docker checks (UPDATING_MODELS.md).")
+    log("Next: read the report, commit the changes in data-files, and run the Docker checks (UPDATING_MODELS.md in "
+        "data-files).")
     sys.exit(1 if status else 0)
 
 

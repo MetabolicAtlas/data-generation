@@ -1,0 +1,11 @@
+# Python tools: update/, maps/, overlay/ and check/
+-r check/requirements.txt
+PyYAML
+PyGithub
+packaging
+lxml
+pandas
+numpy
+matplotlib
+# maps/publish_maps.py (the SBGN-ML, SBML, Escher and PNG exports) also needs:
+# python-libsbml cairosvg pillow jsonschema

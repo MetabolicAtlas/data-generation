@@ -16,3 +16,7 @@ gemRepository/
 **/*.yml
 
 *.swp
+
+# schemas that maps/export_formats.py validates against, downloaded where needed
+maps/schema/
+__pycache__/

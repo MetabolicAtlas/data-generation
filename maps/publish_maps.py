@@ -7,8 +7,9 @@ compartmentSVG.tsv are written as SVG, SBGN-ML, SBML, Escher (JSON) and PNG (exp
 The README's line "The maps match **<Model> <version>**." gets the version in integratedModels.json.
 A summary for the pull request is written to --summary.
 
-Usage: publish_maps.py --model Human-GEM --repo <maps repository checkout> [--summary summary.md]
-Used by .github/workflows/publish-maps.yml; see UPDATING_MODELS.md.
+Usage: publish_maps.py --model Human-GEM --repo <maps repository checkout> [--data-files <checkout>]
+                       [--summary summary.md]
+Used by the publish-maps workflow of MetabolicAtlas/data-files; see UPDATING_MODELS.md there.
 """
 
 import argparse
@@ -21,7 +22,6 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA_FILES = os.path.dirname(os.path.dirname(HERE))
 FORMATS = ("svg", "sbgn", "sbml", "png", "escher")
 
 
@@ -38,8 +38,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help="folder in integrated-models, e.g. Human-GEM")
     ap.add_argument("--repo", required=True, help="checkout of the model's maps repository")
+    ap.add_argument("--data-files", default=os.path.join(os.path.dirname(os.path.dirname(HERE)), "data-files"),
+                    help="data-files checkout with the maps (default: data-files next to data-generation)")
     ap.add_argument("--summary", help="write a Markdown summary for the pull request here")
     a = ap.parse_args()
+    DATA_FILES = os.path.abspath(a.data_files)
     model_dir = os.path.join(DATA_FILES, "integrated-models", a.model)
     svg_dir = os.path.join(DATA_FILES, "svg", a.model)
     index = json.load(open(os.path.join(DATA_FILES, "integrated-models", "integratedModels.json")))
@@ -85,7 +88,7 @@ def main():
         open(readme, "w", encoding="utf-8").write(text)
     shutil.rmtree(work)
     lines = [f"Maps of **{a.model} {version}**, written from MetabolicAtlas/data-files (`svg/{a.model}`) by "
-             "`utils/maps/publish_maps.py`, as SVG, SBGN-ML 0.3, SBML Level 3 with layout and groups, Escher (JSON) "
+             "`maps/publish_maps.py` of MetabolicAtlas/data-generation, as SVG, SBGN-ML 0.3, SBML Level 3 with layout and groups, Escher (JSON) "
              "and PNG.", "",
              f"- {counts['subsystem']} subsystem maps and {counts['compartment']} compartment maps"]
     for kind in ("subsystem", "compartment"):

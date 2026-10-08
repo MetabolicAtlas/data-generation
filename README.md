@@ -32,5 +32,30 @@ The folder `gemRepository` contains a timeline chart for integrated models that 
 
 `<RUN DIR>` is the directory the generator was run in. The model update workflow in data-files runs this check after generating the data.
 
+## Updating an integrated model
+
+The tools in `update/` and `maps/` update a model in a [data-files](https://github.com/MetabolicAtlas/data-files) checkout to a new release. The procedure, including the local deployment test, is described in [UPDATING_MODELS.md](https://github.com/MetabolicAtlas/data-files/blob/main/UPDATING_MODELS.md) in data-files, whose workflows run these tools from a checkout of this repository. The commands below expect data-files checked out next to this repository; `--data-files <PATH>` points elsewhere.
+
+    $ pip install -r requirements.txt
+    $ python update/fetch_release_data.py -s                              # which models can be updated
+    $ python update/update_model.py --model Human-GEM --version 2.1.1     # update and check the files
+
+- `update/update_model.py` downloads the release files into data-files, prepares them for the generator, updates `integratedModels.json` and the model's `gemRepository.json`, fits the SVG maps to the new version, generates the data and runs `check/check_generated_data.py`. It stops with an explanation when the model files need a manual fix; `--keep-files` reruns it on the fixed files.
+- `update/fetch_release_data.py` writes each integrated model's `gemRepository.json` (its releases), or with `-s` lists the models with a newer release.
+- `update/update_pr_body.py` writes the pull request description for the update workflow.
+
+## Maps
+
+`maps/` edits and exports the SVG maps in data-files `svg/<Model>`:
+
+- `mapedit.py` fits the maps to a new model version, keeping their drawing; the rules are listed in [maps/RULES.md](maps/RULES.md). `update/update_model.py` runs it; run again on its own maps with the same model, it changes nothing.
+- `transport_map.py` writes the transport maps (one per membrane) whole from the model, with their rows in `subsystemSVG.tsv`.
+- `newmap.py` makes a blank map for a subsystem or compartment without one; `yaml_to_tsv.py` writes model tables for releases without TSV files; `kegg_fetch.py` caches KEGG pathway layouts that `mapedit.py --kegg-dir` follows for added reactions.
+- `publish_maps.py` writes a model's maps as SVG, SBGN-ML, SBML (with layout and groups), Escher (JSON) and PNG into a checkout of SysBioChalmers/Human-maps or Yeast-maps (`export_formats.py`). With the libsbgn schema in `maps/schema/SBGN.xsd` and Escher's in `maps/schema/escher_1-0-0.json`, every file is validated.
+
+## Data overlay
+
+`overlay/format_hpaRna.py` scales the Human Protein Atlas RNA data for the data overlay, as described in [DATA_OVERLAY.md](https://github.com/MetabolicAtlas/data-files/blob/main/DATA_OVERLAY.md) in data-files; `overlay/hpaRna-tissue-data-analysis.ipynb` shows the distribution that the scaling is based on.
+
 Please note that while the aforementioned commands can be run on their own, the
 output is meaningful only for the deployment pipeline of [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).
