@@ -7,5 +7,5 @@ lxml
 pandas
 numpy
 matplotlib
-# maps/publish_maps.py (the SBGN-ML, SBML, Escher and PNG exports) also needs:
-# python-libsbml cairosvg pillow jsonschema
+# maps/publish_maps.py (the SBGN-ML, SBML and Escher exports) also needs:
+# python-libsbml jsonschema

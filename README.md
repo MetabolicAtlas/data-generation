@@ -51,7 +51,7 @@ The tools in `update/` and `maps/` update a model in a [data-files](https://gith
 - `mapedit.py` fits the maps to a new model version, keeping their drawing; the rules are listed in [maps/RULES.md](maps/RULES.md). `update/update_model.py` runs it; run again on its own maps with the same model, it changes nothing.
 - `transport_map.py` writes the transport maps (one per membrane) whole from the model, with their rows in `subsystemSVG.tsv`.
 - `newmap.py` makes a blank map for a subsystem or compartment without one; `yaml_to_tsv.py` writes the tables the editor reads for models without Human-GEM style TSV files (Yeast-GEM); `kegg_fetch.py` caches KEGG pathway layouts that `mapedit.py --kegg-dir` follows for added reactions.
-- `publish_maps.py` writes a model's maps as SVG, SBGN-ML, SBML (with layout and groups), Escher (JSON) and PNG into a checkout of SysBioChalmers/Human-maps or Yeast-maps (`export_formats.py`). With the libsbgn schema in `maps/schema/SBGN.xsd` and Escher's in `maps/schema/escher_1-0-0.json`, every file is validated.
+- `publish_maps.py` writes a model's maps as SVG, SBGN-ML, SBML (with layout and groups), Escher (JSON) into a checkout of SysBioChalmers/Human-maps or Yeast-maps (`export_formats.py`). With the libsbgn schema in `maps/schema/SBGN.xsd` and Escher's in `maps/schema/escher_1-0-0.json`, every file is validated.
 
 ## Data overlay
 

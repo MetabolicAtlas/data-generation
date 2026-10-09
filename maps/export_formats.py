@@ -4,20 +4,19 @@
 For each map: SBGN-ML (process description: metabolites as simple chemicals, reactions as processes,
 genes as macromolecules catalysing them, compartments), SBML Level 3 with the layout and groups packages
 (the reactions with their stoichiometry and gene modifiers from the model, every drawn node and edge in
-the layout, one group per subsystem), an Escher map (JSON), and a PNG image. Positions and edge paths are
-those of the SVG.
+the layout, one group per subsystem) and an Escher map (JSON). Positions and edge paths are those of the
+SVG.
 
 Usage: export_formats.py <model.yml> <model dir with reactions/metabolites/genes.tsv> <out dir>
-       --maps a.svg ... [--png-width 3000]
-Writes <out>/<format>/<map>.<ext> for format svg, sbgn, sbml, escher (.json) and png. Needs python-libsbml,
-lxml, cairosvg and Pillow. With the libsbgn schema at schema/SBGN.xsd next to this file, every SBGN file is
+       --maps a.svg ...
+Writes <out>/<format>/<map>.<ext> for format svg, sbgn, sbml and escher (.json). Needs python-libsbml and
+lxml. With the libsbgn schema at schema/SBGN.xsd next to this file, every SBGN file is
 validated against it; with Escher's map schema at schema/escher_1-0-0.json (and jsonschema), every Escher map
 too; every SBML file is checked with libsbml, and every Escher map with Escher's own consistency checks.
 """
 
 import argparse
 import collections
-import io
 import math
 import os
 import re
@@ -683,24 +682,16 @@ def validate_escher(path):
     return errors[:3]
 
 
-def write_png(svg, path, width):
-    import cairosvg
-    from PIL import Image
-    png = cairosvg.svg2png(url=svg, output_width=width, background_color="white")
-    Image.open(io.BytesIO(png)).convert("RGB").save(path, optimize=True)
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("model_yml")
     ap.add_argument("model_dir")
     ap.add_argument("out")
     ap.add_argument("--maps", nargs="+", required=True)
-    ap.add_argument("--png-width", type=int, default=3000)
     ap.add_argument("--model-name", help="model name for the Escher maps (default: the YAML file name)")
     a = ap.parse_args()
     model = mapedit.Model(a.model_yml, a.model_dir, [])
-    for fmt in ("svg", "sbgn", "sbml", "png", "escher"):
+    for fmt in ("svg", "sbgn", "sbml", "escher"):
         os.makedirs(os.path.join(a.out, fmt), exist_ok=True)
     model_name = f"{a.model_name or os.path.basename(a.model_yml).rsplit('.', 1)[0]} {model.version}"
     problems = 0
@@ -710,7 +701,6 @@ def main():
         write_sbgn(d, os.path.join(a.out, "sbgn", d.name + ".sbgn"))
         errors = validate_sbgn(os.path.join(a.out, "sbgn", d.name + ".sbgn"))
         errors += write_sbml(d, os.path.join(a.out, "sbml", d.name + ".sbml"))
-        write_png(p, os.path.join(a.out, "png", d.name + ".png"), a.png_width)
         write_escher(d, os.path.join(a.out, "escher", d.name + ".json"), model_name)
         errors += validate_escher(os.path.join(a.out, "escher", d.name + ".json"))
         problems += len(errors)

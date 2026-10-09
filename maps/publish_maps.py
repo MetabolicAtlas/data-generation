@@ -2,8 +2,9 @@
 """Write a model's maps into a checkout of its maps repository (SysBioChalmers/Human-maps, Yeast-maps).
 
 The subsystem and compartment maps listed in integrated-models/<Model>/subsystemSVG.tsv and
-compartmentSVG.tsv are written as SVG, SBGN-ML, SBML, Escher (JSON) and PNG (export_formats.py) into
-<repo>/subsystem/<format>/ and <repo>/compartment/<format>/; maps that are no longer listed are removed.
+compartmentSVG.tsv are written as SVG, SBGN-ML, SBML and Escher (JSON) (export_formats.py) into
+<repo>/subsystem/<format>/ and <repo>/compartment/<format>/; maps that are no longer listed, and folders of
+other formats, are removed.
 The README's line "The maps match **<Model> <version>**." gets the version in integratedModels.json.
 A summary for the pull request is written to --summary.
 
@@ -22,7 +23,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FORMATS = ("svg", "sbgn", "sbml", "png", "escher")
+FORMATS = ("svg", "sbgn", "sbml", "escher")
 
 
 def listed_maps(table):
@@ -74,6 +75,10 @@ def main():
                 sys.exit(f"export of the {kind} maps failed or reported errors: {last}")
         names = {m[:-4] for m in maps}
         gone = set()
+        kind_dir = os.path.join(a.repo, kind)
+        for other in sorted(set(os.listdir(kind_dir) if os.path.isdir(kind_dir) else []) - set(FORMATS)):
+            if os.path.isdir(os.path.join(kind_dir, other)):
+                shutil.rmtree(os.path.join(kind_dir, other))
         for fmt in FORMATS:
             target = os.path.join(a.repo, kind, fmt)
             if os.path.isdir(target):
@@ -89,8 +94,7 @@ def main():
         open(readme, "w", encoding="utf-8").write(text)
     shutil.rmtree(work)
     lines = [f"Maps of **{a.model} {version}**, written from MetabolicAtlas/data-files (`svg/{a.model}`) by "
-             "`maps/publish_maps.py` of MetabolicAtlas/data-generation, as SVG, SBGN-ML 0.3, SBML Level 3 with layout and groups, Escher (JSON) "
-             "and PNG.", "",
+             "`maps/publish_maps.py` of MetabolicAtlas/data-generation, as SVG, SBGN-ML 0.3, SBML Level 3 with layout and groups, and Escher (JSON).", "",
              f"- {counts['subsystem']} subsystem maps and {counts['compartment']} compartment maps"]
     for kind in ("subsystem", "compartment"):
         if removed[kind]:
