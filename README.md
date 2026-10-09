@@ -22,5 +22,15 @@ The folder `dataOverlay` contains TSV and JSON files that can be served directly
 
 The folder `gemRepository` contains a timeline chart for integrated models that can be served in [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).
 
+## Checking the generated data
+
+`check/check_generated_data.py` checks the output for one model against its files in data-files. It reads the model files independently of the generator and compares them with the Neo4j CSV files, the import script, the SVG map links and the data overlay files. Hard checks (counts, names, formulas, bounds, gene rules, EC codes, references, stoichiometry, map links) fail the run; a previous run can be given to report what changed.
+
+    $ pip install -r check/requirements.txt
+    $ python check/check_generated_data.py --model Human-GEM --data-files <PATH TO DATA FILES> \
+        --new <RUN DIR> [--old <PREVIOUS RUN DIR>] [--report report.md]
+
+`<RUN DIR>` is the directory the generator was run in. The model update workflow in data-files runs this check after generating the data.
+
 Please note that while the aforementioned commands can be run on their own, the
 output is meaningful only for the deployment pipeline of [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).

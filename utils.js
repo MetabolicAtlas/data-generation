@@ -14,12 +14,12 @@ const trim = (x, characters = ' \tw') => {
 };
 
 const cleanExternalId = (rawExternalId, dbName) => {
-  // clean rawExternalId
+  // clean rawExternalId; it may hold several ids separated by ';', each with its prefix
   rawExternalId = trim(rawExternalId.trim(), '"');
   if (dbName == 'ChEBI') {
-    rawExternalId = rawExternalId.replace(/^CHEBI:/, '');
+    rawExternalId = rawExternalId.replace(/(^|;)\s*CHEBI:/g, '$1');
   } else if (dbName == 'Rhea' || dbName == 'RheaMaster') {
-    rawExternalId = rawExternalId.replace(/^RHEA:/, '');
+    rawExternalId = rawExternalId.replace(/(^|;)\s*RHEA:/g, '$1');
   }
   return rawExternalId;
 };
@@ -87,10 +87,11 @@ const reformatCompartmentObjets = (data) => {
 
 const reformatGeneObjets = (data) => {
   return data.map((g) => {
-    const id = Object.values(g[0])[0];
+    g = mergedObjects(g);
     return {
-      geneId: id,
-      name: '',
+      geneId: g.id,
+      // a Human-GEM style genes.tsv replaces the name with its gene symbol
+      name: g.name || '',
       alternateName: '',
       synonyms: '',
       function: '',
@@ -115,11 +116,36 @@ const reformatCompartmentalizedMetaboliteObjets = (data) => {
   });
 };
 
+// EC codes come as a list or a ";"-separated string; the frontend splits on "; "
+const formatEcCodes = (eccodes) => {
+  if (!eccodes) {
+    return eccodes;
+  }
+  const codes = Array.isArray(eccodes) ? eccodes : String(eccodes).split(";");
+  return codes
+    .map((e) => String(e).trim())
+    .filter(Boolean)
+    .join("; ");
+};
+
+// PubMed ids under annotation/pubmed (a list or one id) as a references text, "PMID:1;PMID:2"
+const formatPubmed = (pubmed) => {
+  if (pubmed === undefined || pubmed === null || pubmed === "") {
+    return undefined;
+  }
+  const ids = Array.isArray(pubmed) ? pubmed : [pubmed];
+  return ids.map((e) => `PMID:${String(e).trim()}`).join(";");
+};
+
 const reformatReactionObjets = (data) => {
   return data.map((r) => {
     // reactionId,name,reversible,lowerBound,upperBound,geneRule,ec
     r = mergedObjects(r);
     r.metabolites = mergedObjects(r.metabolites);
+    // RAVEN 3 and raven-toolbox write EC codes as annotation/ec-code instead of eccodes
+    const annotation = Array.isArray(r.annotation)
+      ? mergedObjects(r.annotation)
+      : r.annotation || {};
     return {
       reactionId: r.id,
       name: r.name,
@@ -128,8 +154,9 @@ const reformatReactionObjets = (data) => {
       upperBound: r.upper_bound,
       geneRule: r.gene_reaction_rule,
       reversible: r.lower_bound === -1000,
-      ec: r.eccodes,
-      references: r.references,
+      ec: formatEcCodes(r.eccodes ?? annotation["ec-code"]),
+      // yeast-GEM writes PubMed ids as annotation/pubmed instead of references
+      references: r.references ?? formatPubmed(annotation.pubmed),
       subsystems: r.subsystem
         ? Array.isArray(r.subsystem)
           ? r.subsystem
@@ -268,6 +295,7 @@ export {
   toLabelCase,
   trim,
   cleanExternalId,
+  formatEcCodes,
   reformatGeneObjets,
   reformatCompartmentObjets,
   reformatCompartmentalizedMetaboliteObjets,

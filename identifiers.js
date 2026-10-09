@@ -1,3 +1,5 @@
+// headers: the table columns of each database, as Human-GEM names them (metKEGGID) and as
+// yeast-GEM names them after the annotation keys (kegg.compound)
 const crossReferencesDict = {
   ratcon: {
     headers: ["rxnRatconID"],
@@ -128,7 +130,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   kegg: {
-    headers: ["rxnKEGGID", "metKEGGID"],
+    headers: ["rxnKEGGID", "metKEGGID", "kegg.reaction", "kegg.compound"],
     db: "KEGG",
     dbPrefix: "kegg",
     compoundSuffix: ".compound",
@@ -136,7 +138,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   meta_net_x: {
-    headers: ["rxnMetaNetXID", "metMetaNetXID"],
+    headers: ["rxnMetaNetXID", "metMetaNetXID", "metanetx.reaction", "metanetx.chemical"],
     db: "MetaNetX",
     dbPrefix: "metanetx",
     compoundSuffix: ".chemical",
@@ -160,7 +162,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   model_seed: {
-    headers: [],
+    headers: ["metSeedID", "rxnSeedID"],
     db: "ModelSEED",
     dbPrefix: "seed",
     compoundSuffix: ".compound",
@@ -168,7 +170,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   bigg: {
-    headers: ["rxnBiGGID", "metBiGGID"],
+    headers: ["rxnBiGGID", "metBiGGID", "bigg.reaction", "bigg.metabolite"],
     db: "BiGG",
     dbPrefix: "bigg",
     compoundSuffix: ".metabolite",
@@ -192,7 +194,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   chebi: {
-    headers: ["metChEBIID"],
+    headers: ["metChEBIID", "chebi"],
     db: "ChEBI",
     dbPrefix: "CHEBI",
     compoundSuffix: "",
@@ -216,7 +218,7 @@ const crossReferencesDict = {
     geneSuffix: "",
   },
   uniprot: {
-    headers: ["geneUniProtID"],
+    headers: ["geneUniProtID", "uniprot"],
     db: "UniProtKB",
     dbPrefix: "uniprot",
     compoundSuffix: "",

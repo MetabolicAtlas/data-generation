@@ -129,6 +129,11 @@ const getPMIDs = (PMIDSset, componentIdDict) => {
   return [PMIDs, reactionPMID];
 };
 
+// yeast-GEM's annotation tables start with an id column and name the other columns after
+// the annotation keys (uniprot, chebi, kegg.compound, ec-code, ...); Human-GEM's start with
+// genes, mets or rxns, name cross-reference columns like metChEBIID and are read by position
+const isKeyedTable = (headerArr) => headerArr[0] === "id";
+
 const getGeneAnnotation = (componentIdDict, modelDir) => {
   // get annotaitons for genes from the genes tsv file
   const geneAnnoFile = utils.getFile(modelDir, /genes[.]tsv$/);
@@ -143,6 +148,11 @@ const getGeneAnnotation = (componentIdDict, modelDir) => {
       .readFileSync(geneAnnoFile, { encoding: "utf8", flag: "r" })
       .split("\n")
       .filter(Boolean);
+    const header = lines.find((l) => l[0] != "#" && l[0] != "@");
+    if (header && isKeyedTable(header.split("\t").map((e) => utils.trim(e, ' \t\r"')))) {
+      // the gene names of such a model are in its YAML
+      return;
+    }
     for (let i = 0; i < lines.length; i++) {
       if (lines[i][0] == "#" || lines[i][0] == "@") {
         continue;
@@ -200,12 +210,14 @@ const getComponentExternalDb = (
 
     var headerArr = [];
     var contentArr = [];
+    var keyed = false;
     for (let i = 0; i < lines.length; i++) {
       if (lines[i][0] == "#") {
         continue;
       } else if (i == 0) {
         /*read the header line*/
-        headerArr = lines[i].split("\t").map((e) => e.trim());
+        headerArr = lines[i].split("\t").map((e) => utils.trim(e, ' \t\r"'));
+        keyed = isKeyedTable(headerArr);
         continue;
       } else {
         contentArr = lines[i].split("\t").map((e) => utils.trim(e, '"'));
@@ -225,7 +237,7 @@ const getComponentExternalDb = (
         continue;
       }
 
-      if (fcomponent == "gene") {
+      if (fcomponent == "gene" && !keyed) {
         /*add two more items Ensembl and Protein Atlas which is not included in the new format*/
         headerArr.push("geneEnsemblID");
         headerArr.push("geneProteinAtlasID");
@@ -236,10 +248,27 @@ const getComponentExternalDb = (
 
       for (let j = 1; j < numItem; j++) {
         const header = headerArr[j];
+        if (keyed && fcomponent == "reaction" && header == "ec-code") {
+          // EC codes from the table for reactions whose YAML entry has none
+          const reaction = componentIdDict.reaction[id];
+          if (!reaction.ec && contentArr[j]) {
+            reaction.ec = utils.formatEcCodes(contentArr[j]);
+          }
+          continue;
+        }
+        const crossReferencesArray = Object.values(crossReferencesDict);
+        const referenceData = crossReferencesArray.find((item) =>
+          item.headers.includes(header)
+        );
         const regexGene = "gene.*ID$";
         const regexRxn = "rxn.*ID$";
         const regexMet = "met.*ID$";
-        if (
+        if (keyed) {
+          // name, smiles, kegg.pathway and other columns without a database in identifiers.js
+          if (!referenceData) {
+            continue;
+          }
+        } else if (
           (fcomponent == "gene" && header.match(regexGene) == null) ||
           (fcomponent == "reaction" && header.match(regexRxn) == null) ||
           (fcomponent == "compartmentalizedMetabolite" &&
@@ -247,10 +276,6 @@ const getComponentExternalDb = (
         ) {
           continue;
         }
-        const crossReferencesArray = Object.values(crossReferencesDict);
-        const referenceData = crossReferencesArray.find((item) =>
-          item.headers.includes(header)
-        );
         const dbName = referenceData ? referenceData.db : "";
         const dbPrefix = referenceData ? referenceData.dbPrefix : "";
         const suffix =
