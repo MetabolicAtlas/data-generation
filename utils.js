@@ -14,12 +14,12 @@ const trim = (x, characters = ' \tw') => {
 };
 
 const cleanExternalId = (rawExternalId, dbName) => {
-  // clean rawExternalId
+  // clean rawExternalId; it may hold several ids separated by ';', each with its prefix
   rawExternalId = trim(rawExternalId.trim(), '"');
   if (dbName == 'ChEBI') {
-    rawExternalId = rawExternalId.replace(/^CHEBI:/, '');
+    rawExternalId = rawExternalId.replace(/(^|;)\s*CHEBI:/g, '$1');
   } else if (dbName == 'Rhea' || dbName == 'RheaMaster') {
-    rawExternalId = rawExternalId.replace(/^RHEA:/, '');
+    rawExternalId = rawExternalId.replace(/(^|;)\s*RHEA:/g, '$1');
   }
   return rawExternalId;
 };

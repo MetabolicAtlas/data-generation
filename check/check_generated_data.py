@@ -486,9 +486,9 @@ def check_xrefs(rep, model_dir, m, run, identifiers):
                 if db is None or not value:
                     continue
                 if db == "ChEBI":
-                    value = re.sub(r"^CHEBI:", "", value)
+                    value = re.sub(r"(^|;)\s*CHEBI:", r"\1", value)
                 elif db in ("Rhea", "RheaMaster"):
-                    value = re.sub(r"^RHEA:", "", value)
+                    value = re.sub(r"(^|;)\s*RHEA:", r"\1", value)
                 for v in (x.strip() for x in value.split(";")):
                     if v:
                         expected.add((i, db, "CHEBI:" + v if db == "ChEBI" else v))
