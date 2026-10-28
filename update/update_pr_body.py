@@ -22,8 +22,9 @@ STATUS = {
     0: "All hard checks of the generated data passed. Next: test the update in a local deployment (below).",
     1: "**Some hard checks failed or data-generation stopped.** See the script output and the failed checks "
        "below; [UPDATING_MODELS.md]({guide}) lists the usual causes and fixes.",
-    2: "**The update stopped: the model files need a manual fix first.** The script output below says what "
-       "to fix; [UPDATING_MODELS.md]({guide}) explains how.",
+    2: "**The update needs a manual fix.** Either it stopped because the model files need a fix first, or the "
+       "maps could not be updated (a warning below says so). The script output below says what to fix; "
+       "[UPDATING_MODELS.md]({guide}) explains how.",
 }
 
 
@@ -60,6 +61,11 @@ def main():
 
     out = [f"Updates **{args.model}** to [{args.version}](https://github.com/SysBioChalmers/{args.model}"
            f"/releases/tag/v{args.version}). Prepared by the *Update integrated model* workflow{run}.", "", status, ""]
+
+    if args.maps_summary and os.path.exists(args.maps_summary):
+        first = open(args.maps_summary, encoding="utf-8").readline().strip()
+        if first.startswith("**Maps NOT"):
+            out += [first, ""]  # not only in the collapsed map section below
 
     if args.status != 0:
         out += ["### What to fix", "",

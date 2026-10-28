@@ -12,12 +12,16 @@ Steps, in order (see UPDATING_MODELS.md in data-files for the full procedure):
      the previous copy had but the release lacks (short_name, full_name, authors,
      github, description, ...) carried over.
   4. Check that every TSV row has as many fields as its header. data-generation reads
-     the tables by position, so a short row misplaces values. Problems are listed
+     Human-GEM's tables by position, so a short row misplaces values. Problems are listed
      and the script stops: fix the rows by hand and rerun with --keep-files.
   5. Set version and date in integratedModels.json.
   6. Add the model's releases up to this version to its gemRepository.json.
   7. Run data-generation on the updated files, then its check/check_generated_data.py,
      which compares the output with the model files and with the baseline.
+
+Exit status: 0 when every hard check passed; 1 when data-generation or a hard check failed; 2 when the model
+files need a manual fix first, or when the map editor failed (the update is finished and checked, but the maps
+in svg/<model> are not up to date).
 
 Usage, in data-generation, with data-files checked out next to it (or given with --data-files):
     python update/update_model.py --model Human-GEM --version 2.0.0
@@ -113,7 +117,7 @@ def split_metadata(text):
     start = next((i for i, line in enumerate(lines) if re.match(r"^- metaData:", line)), None)
     if start is None:
         fail("no '- metaData:' entry at the top level of the YAML file")
-    end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("- "))
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("- ")), len(lines))
     return lines[:start], lines[start:end], lines[end:]
 
 
@@ -179,13 +183,6 @@ def has_rows(path):
     return bool(table_lines(path))
 
 
-def human_gem_columns(path):
-    """Whether a model table has rows and Human-GEM's column names (rxns, rxnKEGGID, ...), which the
-    map editor reads; yeast-GEM's tables start with an id column named after the annotation keys."""
-    lines = table_lines(path)
-    return bool(lines) and lines[0][1][0].strip('"') != "id"
-
-
 def ragged_rows(path):
     """(line number, id, fields, header fields) of rows whose field count differs from the header."""
     lines = table_lines(path)
@@ -196,6 +193,13 @@ def ragged_rows(path):
 
 
 # ----------------------------------------------------------------------------- steps
+
+def baseline_dir(work, model, old_version, version):
+    """Folder for the baseline run; the new version gets <model>-<version>, which is the same name when the
+    integrated version is the one being updated to (a rerun), so the baseline must not use it."""
+    name = f"{model}-{old_version}"
+    return os.path.join(work, name + "-baseline" if old_version == version else name)
+
 
 def run_generation(data_generation, run_dir, data_files):
     if os.path.exists(run_dir):
@@ -221,10 +225,6 @@ def preflight(args, model_dir):
         fail(f"run 'yarn install --frozen-lockfile' in {args.data_generation} first")
     if not os.path.exists(os.path.join(args.data_generation, "check", "check_generated_data.py")):
         fail(f"{args.data_generation} has no check/check_generated_data.py; use a data-generation version that has it")
-    utils_js = open(os.path.join(args.data_generation, "utils.js")).read()
-    if "formatEcCodes" not in utils_js:
-        log("  WARNING: this data-generation does not normalise EC codes or unquote TSV headers;"
-            " use a version with those fixes")
     svgs = glob.glob(os.path.join(DATA_FILES, "svg", args.model, "*.svg"))
     if svgs and open(svgs[0], "rb").read(24) == b"version https://git-lfs":
         fail("the SVG maps are Git LFS pointers; run 'git lfs pull' in data-files")
@@ -239,25 +239,24 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
     """Fit the model's SVG maps to the new version with maps/mapedit.py (rules in maps/RULES.md).
 
     The maps in svg/<model> are replaced by the edited ones; the change list (edited/changes.tsv), copies
-    with the changes highlighted (edited/*.review.svg) and a summary stay in work_maps."""
+    with the changes highlighted (edited/*.review.svg) and a summary stay in work_maps. Returns the problems
+    that leave the maps not up to date (the map editor or the transport maps failed, or a map was left
+    unchanged after an error); the summary starts with them."""
     svg_dir = os.path.join(DATA_FILES, "svg", args.model)
     maps = sorted(glob.glob(os.path.join(svg_dir, "*.svg")))
     if not maps:
         log(f"7. Maps: no maps in svg/{args.model}")
-        return
+        return []
     if any(open(m, "rb").read(len(b"version https://git-lfs")) == b"version https://git-lfs" for m in maps):
         fail(f"svg/{args.model} holds Git LFS pointers; run `git lfs pull` first, or pass --skip-maps")
     out = os.path.join(work_maps, "edited")
     shutil.rmtree(work_maps, ignore_errors=True)
     os.makedirs(out)
-    tables = model_dir
-    if not human_gem_columns(os.path.join(model_dir, "reactions.tsv")):  # the editor's tables, written from the YAML
-        tables = os.path.join(work_maps, "model-tables")
-        subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "yaml_to_tsv.py"), new_yaml, tables,
-                        model_dir], check=True, stdout=subprocess.DEVNULL)
+    problems = []
+    env = {**os.environ, "PYTHONHASHSEED": "0"}  # placement goes through sets: the same maps on every run
     boxed = any(b'class="compartment"' in open(m, "rb").read() for m in maps if b"data-transport=" not in open(m, "rb").read(3000))
     gene_label = args.gene_label or ("name" if boxed else "both")
-    cmd = [sys.executable, os.path.join(DATA_GENERATION, "maps", "mapedit.py"), new_yaml, tables, old_yaml,
+    cmd = [sys.executable, os.path.join(DATA_GENERATION, "maps", "mapedit.py"), new_yaml, model_dir, old_yaml,
            "--maps", *maps, "--out", out, "--review",
            "--map-table", os.path.join(model_dir, "subsystemSVG.tsv"),
            "--compartment-table", os.path.join(model_dir, "compartmentSVG.tsv"),
@@ -267,10 +266,13 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
         cmd.append("--one-area")  # maps without compartment boxes draw every compartment in one area
     if args.kegg_dir:
         cmd += ["--kegg-dir", os.path.abspath(args.kegg_dir)]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     if result.returncode:
-        log(f"7. Maps: the map editor failed; the maps are left unchanged\n{result.stderr[-3000:]}")
-        return
+        problems.append("the map editor (maps/mapedit.py) failed; the maps are left unchanged")
+        log(f"7. Maps: {problems[0]}\n{result.stderr[-3000:]}")
+        with open(summary_path, "w", encoding="utf-8") as fh:
+            fh.write(f"**Maps NOT updated: {problems[0]}.**\n\n```\n{result.stderr[-1500:]}\n```\n")
+        return problems
     edited = 0
     for m in maps:
         new = os.path.join(out, os.path.basename(m))
@@ -283,22 +285,30 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
     if transport:
         listed = [line.split("\t")[2].strip() for line in open(os.path.join(model_dir, "subsystemSVG.tsv"), encoding="utf-8")
                   if line.count("\t") >= 2 and not line.startswith(("#", "@"))]
-        template = next(os.path.join(svg_dir, f) for f in listed
-                        if os.path.join(svg_dir, f) in maps and os.path.join(svg_dir, f) not in transport)
-        result = subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "transport_map.py"), new_yaml, tables,
-                                 template, svg_dir, os.path.join(model_dir, "subsystemSVG.tsv"), "--gene-label", gene_label],
-                                capture_output=True, text=True)
-        if result.returncode:
-            transport_note = "; transport maps left unchanged (transport_map.py failed)"
-            log(f"7. Maps: transport_map.py failed\n{result.stderr[-3000:]}")
+        template = next((os.path.join(svg_dir, f) for f in listed
+                         if os.path.join(svg_dir, f) in maps and os.path.join(svg_dir, f) not in transport), None)
+        if template is None:
+            transport_note = "; transport maps left unchanged (no other map in subsystemSVG.tsv to use as template)"
+            problems.append("the transport maps could not be written: no other subsystem map to use as template")
         else:
-            transport_note = f"; {result.stdout.count('.svg:')} transport maps written again"
+            result = subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "transport_map.py"), new_yaml,
+                                     model_dir, template, svg_dir, os.path.join(model_dir, "subsystemSVG.tsv"),
+                                     "--gene-label", gene_label], capture_output=True, text=True, env=env)
+            if result.returncode:
+                transport_note = "; transport maps left unchanged (transport_map.py failed)"
+                problems.append("the transport maps (maps/transport_map.py) failed; they are left unchanged")
+                log(f"7. Maps: transport_map.py failed\n{result.stderr[-3000:]}")
+            else:
+                transport_note = f"; {result.stdout.count('.svg:')} transport maps written again"
     rows = [line.rstrip("\n").split("\t") for line in open(os.path.join(out, "changes.tsv"), encoding="utf-8")][1:]
     changes = collections.Counter((r[1], r[2]) for r in rows
                                   if len(r) > 2 and r[1] not in ("review", "error") and r[2] != "connection passes")
     review = collections.Counter(r[2] for r in rows if len(r) > 2 and r[1] == "review")
     errors = [r[0] for r in rows if len(r) > 1 and r[1] == "error"]
-    lines = [f"{edited} of {len(maps)} maps changed{transport_note}. The rules are listed in maps/RULES.md of "
+    if errors:
+        problems.append(f"{len(set(errors))} maps were left unchanged after an error")
+    lines = [f"**Maps NOT fully updated: {'; '.join(problems)}.**", ""] if problems else []
+    lines += [f"{edited} of {len(maps)} maps changed{transport_note}. The rules are listed in maps/RULES.md of "
              "[data-generation](https://github.com/MetabolicAtlas/data-generation); "
              "the workflow artifact holds the full change list and copies of the maps with the changes highlighted.", "",
              "| rule | change | count |", "|---|---|---|"]
@@ -313,6 +323,7 @@ def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
     log(f"7. Maps: {edited} of {len(maps)} maps changed"
         + (f"; {len(set(errors))} left unchanged after an error" if errors else "") + transport_note
         + f"; summary in {summary_path}")
+    return problems
 
 
 def main():
@@ -363,7 +374,7 @@ def main():
         source = os.path.abspath(args.baseline_data_files)
         index = json.load(open(os.path.join(source, "integrated-models", "integratedModels.json")))
         old_version = next(e["version"] for e in index if e["short_name"] == args.model)
-        baseline = os.path.join(work, f"{args.model}-{old_version}")
+        baseline = baseline_dir(work, args.model, old_version, args.version)
         log(f"1. Baseline: generating data from {source} ({old_version})")
         run_generation(args.data_generation, baseline, source)
         shutil.copytree(os.path.join(source, "integrated-models", args.model), os.path.join(baseline, "model-files"))
@@ -377,7 +388,7 @@ def main():
         if args.keep_files:
             fail(f"no baseline for this update in {work}; run once without --keep-files on the unmodified files")
         old_version = integrated_version(args.model)
-        baseline = os.path.join(work, f"{args.model}-{old_version}")
+        baseline = baseline_dir(work, args.model, old_version, args.version)
         log(f"1. Baseline: generating data from the current files ({old_version})")
         run_generation(args.data_generation, baseline, DATA_FILES)
         shutil.copytree(model_dir, os.path.join(baseline, "model-files"))
@@ -431,10 +442,6 @@ def main():
     with open(target_yaml, "w", encoding="utf-8") as fh:
         fh.write("\n".join(head + new_block + rest))
     log(f"3. metaData: {', '.join(k for k, _ in merged)}")
-    if re.search(r"^\s+- ec-code:", text, re.M) and not re.search(r"^\s+- eccodes:", text, re.M):
-        if "ec-code" not in open(os.path.join(args.data_generation, "utils.js")).read():
-            log("  WARNING: EC codes are under annotation/ec-code, which this data-generation does not read;"
-                " the site will show no EC numbers")
 
     # 4. tables
     problems = []
@@ -456,7 +463,10 @@ def main():
         fail(f"{args.model} is not in integratedModels.json")
     # edit in place, so the rest of the file keeps its layout
     pattern = re.compile(r'(\{\s*"short_name":\s*"' + re.escape(args.model) + r'".*?\n  \})', re.S)
-    entry_text = pattern.search(index_text).group(1)
+    found = pattern.search(index_text)
+    if found is None:
+        fail(f"cannot find the entry of {args.model} in integratedModels.json to edit")
+    entry_text = found.group(1)
     updated = re.sub(r'"version":\s*"[^"]*"', f'"version": "{version}"', entry_text, count=1)
     updated = re.sub(r'"date":\s*"[^"]*"', f'"date": "{date}"', updated, count=1)
     with open(index_path, "w", encoding="utf-8") as fh:
@@ -482,10 +492,11 @@ def main():
     # 7. maps
     maps_dir = os.path.join(work, f"{args.model}-{version}-maps")  # kept apart: step 8 empties its own folder
     maps_summary = os.path.join(maps_dir, "maps_summary.md")
+    map_problems = []
     if args.skip_maps:
         log("7. Maps: skipped")
     else:
-        update_maps(args, model_dir, target_yaml, old_yaml, maps_dir, maps_summary)
+        map_problems = update_maps(args, model_dir, target_yaml, old_yaml, maps_dir, maps_summary)
 
     # 8. generate and check
     log("8. Generating and checking the new version")
@@ -502,7 +513,10 @@ def main():
     log(f"\nReport: {report}")
     log("Next: read the report, commit the changes in data-files, and run the Docker checks (UPDATING_MODELS.md in "
         "data-files).")
-    sys.exit(1 if status else 0)
+    if map_problems:
+        log("\nThe maps in svg/" + args.model + " are not up to date: " + "; ".join(map_problems)
+            + ".\nSee the map summary and fix the cause, or edit the maps by hand.")
+    sys.exit(1 if status else (2 if map_problems else 0))
 
 
 if __name__ == "__main__":
