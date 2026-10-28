@@ -16,24 +16,24 @@ Steps, in order (see UPDATING_MODELS.md in data-files for the full procedure):
      and the script stops: fix the rows by hand and rerun with --keep-files.
   5. Set version and date in integratedModels.json.
   6. Add the model's releases up to this version to its gemRepository.json.
-  7. Run data-generation on the updated files, then its check/check_generated_data.py,
+  7. Copy the maps and the lists of maps (subsystemSVG.tsv, compartmentSVG.tsv) from the model's maps
+     repository (--maps-repo) into svg/<model> and the model folder, if its README says that its maps match
+     this release; maps/update_maps.py fits the maps repository to a release.
+  8. Run data-generation on the updated files, then its check/check_generated_data.py,
      which compares the output with the model files and with the baseline.
 
 Exit status: 0 when every hard check passed; 1 when data-generation or a hard check failed; 2 when the model
-files need a manual fix first, or when the map editor failed (the update is finished and checked, but the maps
-in svg/<model> are not up to date).
+files need a manual fix first, or when the maps repository does not hold the maps of this release (the update
+is finished and checked, but the maps in svg/<model> are not up to date).
 
 Usage, in data-generation, with data-files checked out next to it (or given with --data-files):
     python update/update_model.py --model Human-GEM --version 2.0.0
     python update/update_model.py --model Human-GEM --version 2.0.0 --keep-files
+    python update/update_model.py --model Human-GEM --version 2.0.0 --maps-repo ../Human-maps
     python update/update_model.py --model Human-GEM --latest-version   # print the latest release, if newer
-
-Exit status: 0 when every hard check passed, 1 when a check failed, 2 when the model
-files need a manual fix first.
 """
 
 import argparse
-import collections
 import csv
 import glob
 import json
@@ -235,95 +235,61 @@ def preflight(args, model_dir):
             fail(f"{model_dir} has uncommitted changes; commit or discard them, or rerun with --keep-files")
 
 
-def update_maps(args, model_dir, new_yaml, old_yaml, work_maps, summary_path):
-    """Fit the model's SVG maps to the new version with maps/mapedit.py (rules in maps/RULES.md).
+MAPS_MATCH = re.compile(r"The maps match \*\*[^*\d]*(\d[^*\s]*)\*\*")
 
-    The maps in svg/<model> are replaced by the edited ones; the change list (edited/changes.tsv), copies
-    with the changes highlighted (edited/*.review.svg) and a summary stay in work_maps. Returns the problems
-    that leave the maps not up to date (the map editor or the transport maps failed, or a map was left
-    unchanged after an error); the summary starts with them."""
+
+def maps_version(maps_repo):
+    """The release that the maps repository's maps match, from its README; None if the README does not say."""
+    path = os.path.join(maps_repo, "README.md")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as fh:
+        found = MAPS_MATCH.search(fh.read())
+    return found.group(1) if found else None
+
+
+def custom_maps(model_dir):
+    """File names of the model's custom maps (customSVG.tsv), which exist in data-files only."""
+    path = os.path.join(model_dir, "customSVG.tsv")
+    rows = [line.rstrip("\n").split("\t") for line in open(path, encoding="utf-8")] if os.path.exists(path) else []
+    return {r[1].strip() for r in rows if len(r) >= 2 and not r[0].startswith(("#", "@")) and r[1].strip().endswith(".svg")}
+
+
+def copy_maps(args, model_dir, version):
+    """Copy the maps and the two lists of maps from the model's maps repository into svg/<model> and the model folder.
+    Maps in svg/<model> that the maps repository lacks are removed, except custom maps. Returns the problems that
+    leave the maps not up to date; nothing is copied then."""
+    if not args.maps_repo:
+        log("7. Maps: no --maps-repo given; the maps are unchanged")
+        return ["no --maps-repo was given, so the maps are not up to date (--skip-maps leaves them unchanged on purpose)"]
+    matches = maps_version(args.maps_repo)
+    if matches != version:
+        log(f"7. Maps: the maps repository holds the maps of {matches}, not {version}; nothing copied")
+        return [f"the maps repository holds the maps of {matches}, not of {version}; run its update-maps workflow, "
+                "merge the pull request, and update again"]
     svg_dir = os.path.join(DATA_FILES, "svg", args.model)
-    maps = sorted(glob.glob(os.path.join(svg_dir, "*.svg")))
-    if not maps:
-        log(f"7. Maps: no maps in svg/{args.model}")
-        return []
-    if any(open(m, "rb").read(len(b"version https://git-lfs")) == b"version https://git-lfs" for m in maps):
-        fail(f"svg/{args.model} holds Git LFS pointers; run `git lfs pull` first, or pass --skip-maps")
-    out = os.path.join(work_maps, "edited")
-    shutil.rmtree(work_maps, ignore_errors=True)
-    os.makedirs(out)
-    problems = []
-    env = {**os.environ, "PYTHONHASHSEED": "0"}  # placement goes through sets: the same maps on every run
-    boxed = any(b'class="compartment"' in open(m, "rb").read() for m in maps if b"data-transport=" not in open(m, "rb").read(3000))
-    gene_label = args.gene_label or ("name" if boxed else "both")
-    cmd = [sys.executable, os.path.join(DATA_GENERATION, "maps", "mapedit.py"), new_yaml, model_dir, old_yaml,
-           "--maps", *maps, "--out", out, "--review",
-           "--map-table", os.path.join(model_dir, "subsystemSVG.tsv"),
-           "--compartment-table", os.path.join(model_dir, "compartmentSVG.tsv"),
-           "--custom-table", os.path.join(model_dir, "customSVG.tsv"),
-           "--gene-label", gene_label]
-    if not boxed:
-        cmd.append("--one-area")  # maps without compartment boxes draw every compartment in one area
-    if args.kegg_dir:
-        cmd += ["--kegg-dir", os.path.abspath(args.kegg_dir)]
-    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
-    if result.returncode:
-        problems.append("the map editor (maps/mapedit.py) failed; the maps are left unchanged")
-        log(f"7. Maps: {problems[0]}\n{result.stderr[-3000:]}")
-        with open(summary_path, "w", encoding="utf-8") as fh:
-            fh.write(f"**Maps NOT updated: {problems[0]}.**\n\n```\n{result.stderr[-1500:]}\n```\n")
-        return problems
-    edited = 0
-    for m in maps:
-        new = os.path.join(out, os.path.basename(m))
-        if os.path.exists(new) and open(new, "rb").read() != open(m, "rb").read():
-            shutil.copyfile(new, m)
-            edited += 1
-    # transport maps are written whole from the new model, with their rows in subsystemSVG.tsv
-    transport = [m for m in maps if b"data-transport=" in open(m, "rb").read(3000)]
-    transport_note = ""
-    if transport:
-        listed = [line.split("\t")[2].strip() for line in open(os.path.join(model_dir, "subsystemSVG.tsv"), encoding="utf-8")
-                  if line.count("\t") >= 2 and not line.startswith(("#", "@"))]
-        template = next((os.path.join(svg_dir, f) for f in listed
-                         if os.path.join(svg_dir, f) in maps and os.path.join(svg_dir, f) not in transport), None)
-        if template is None:
-            transport_note = "; transport maps left unchanged (no other map in subsystemSVG.tsv to use as template)"
-            problems.append("the transport maps could not be written: no other subsystem map to use as template")
-        else:
-            result = subprocess.run([sys.executable, os.path.join(DATA_GENERATION, "maps", "transport_map.py"), new_yaml,
-                                     model_dir, template, svg_dir, os.path.join(model_dir, "subsystemSVG.tsv"),
-                                     "--gene-label", gene_label], capture_output=True, text=True, env=env)
-            if result.returncode:
-                transport_note = "; transport maps left unchanged (transport_map.py failed)"
-                problems.append("the transport maps (maps/transport_map.py) failed; they are left unchanged")
-                log(f"7. Maps: transport_map.py failed\n{result.stderr[-3000:]}")
-            else:
-                transport_note = f"; {result.stdout.count('.svg:')} transport maps written again"
-    rows = [line.rstrip("\n").split("\t") for line in open(os.path.join(out, "changes.tsv"), encoding="utf-8")][1:]
-    changes = collections.Counter((r[1], r[2]) for r in rows
-                                  if len(r) > 2 and r[1] not in ("review", "error") and r[2] != "connection passes")
-    review = collections.Counter(r[2] for r in rows if len(r) > 2 and r[1] == "review")
-    errors = [r[0] for r in rows if len(r) > 1 and r[1] == "error"]
-    if errors:
-        problems.append(f"{len(set(errors))} maps were left unchanged after an error")
-    lines = [f"**Maps NOT fully updated: {'; '.join(problems)}.**", ""] if problems else []
-    lines += [f"{edited} of {len(maps)} maps changed{transport_note}. The rules are listed in maps/RULES.md of "
-             "[data-generation](https://github.com/MetabolicAtlas/data-generation); "
-             "the workflow artifact holds the full change list and copies of the maps with the changes highlighted.", "",
-             "| rule | change | count |", "|---|---|---|"]
-    lines += [f"| {k[0]} | {k[1]} | {n} |" for k, n in sorted(changes.items(), key=lambda x: (x[0][0][0], int(x[0][0][1:]) if x[0][0][1:].isdigit() else 0))]
-    if review:
-        lines += ["", "Left for review:", "", "| item | count |", "|---|---|"]
-        lines += [f"| {k} | {n} |" for k, n in review.most_common()]
-    if errors:
-        lines += ["", f"Maps left unchanged after an error: {', '.join(sorted(set(errors)))}"]
-    with open(summary_path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines) + "\n")
-    log(f"7. Maps: {edited} of {len(maps)} maps changed"
-        + (f"; {len(set(errors))} left unchanged after an error" if errors else "") + transport_note
-        + f"; summary in {summary_path}")
-    return problems
+    os.makedirs(svg_dir, exist_ok=True)
+    paths = [p for kind in ("subsystem", "compartment") for p in glob.glob(os.path.join(args.maps_repo, kind, "svg", "*.svg"))]
+    sources = {os.path.basename(p): p for p in paths}
+    if len(sources) != len(paths):
+        return ["a map has the same file name as a subsystem map and as a compartment map in the maps repository"]
+    keep = custom_maps(model_dir)
+    lists = {name: os.path.join(args.maps_repo, name) for name in ("subsystemSVG.tsv", "compartmentSVG.tsv")}
+    listed = {line.split("\t")[2].strip() for path in lists.values() if os.path.exists(path)
+              for line in open(path, encoding="utf-8").read().split("\n")
+              if line.count("\t") >= 2 and not line.startswith(("#", "@"))}
+    if not sources or listed - set(sources):
+        return [f"the maps repository lacks {len(listed - set(sources))} of the maps that its lists name (or has no maps "
+                "at all); nothing was copied"]
+    removed = [f for f in sorted(os.listdir(svg_dir)) if f.endswith(".svg") and f not in sources and f not in keep]
+    for f in removed:
+        os.remove(os.path.join(svg_dir, f))
+    for f, source in sources.items():
+        shutil.copyfile(source, os.path.join(svg_dir, f))
+    for name in ("subsystemSVG.tsv", "compartmentSVG.tsv"):
+        shutil.copyfile(os.path.join(args.maps_repo, name), os.path.join(model_dir, name))
+    log(f"7. Maps: {len(sources)} maps and the lists copied from the maps repository; {len(removed)} removed")
+    return []
 
 
 def main():
@@ -332,7 +298,8 @@ def main():
     ap.add_argument("--model", required=True, help="folder in integrated-models and repository name, e.g. Human-GEM")
     ap.add_argument("--version", help="release to update to, e.g. 2.0.0")
     ap.add_argument("--latest-version", action="store_true",
-                    help="only print the latest release if it is newer than the integrated version (nothing if up to date)")
+                    help="only print the latest release if it is newer than the integrated version (nothing if up to "
+                         "date); with --maps-repo only when the maps repository holds the maps of that release")
     ap.add_argument("--data-files", default=DATA_FILES,
                     help="data-files checkout whose model is updated (default: data-files next to data-generation)")
     ap.add_argument("--data-generation", default=DATA_GENERATION,
@@ -343,12 +310,10 @@ def main():
                     help="do not download; use the model files in data-files as they are (after a manual fix)")
     ap.add_argument("--date", help="date to use instead of the one in the release YAML (YYYY-MM-DD)")
     ap.add_argument("--skip-timeline", action="store_true", help="leave gemRepository.json unchanged")
+    ap.add_argument("--maps-repo", help="checkout of the model's maps repository (SysBioChalmers/Human-maps, "
+                                        "Yeast-maps), whose maps and lists of maps are copied; maps/update_maps.py "
+                                        "fits them to a release first")
     ap.add_argument("--skip-maps", action="store_true", help="leave the SVG maps unchanged")
-    ap.add_argument("--gene-label", choices=["name", "orf", "both"],
-                    help="gene boxes on the maps: gene name, gene id, or name over id (default: name, or both for "
-                         "maps without compartment boxes, such as Yeast-GEM's)")
-    ap.add_argument("--kegg-dir", help="KGML cache made by maps/kegg_fetch.py: added reactions that a KEGG map "
-                                       "of their subsystem shows keep KEGG's arrangement")
     ap.add_argument("--baseline-data-files",
                     help="generate the baseline from this data-files checkout (e.g. of main) instead of the "
                          "current files; needed with --keep-files when no earlier baseline exists")
@@ -357,7 +322,10 @@ def main():
     if not os.path.isfile(os.path.join(DATA_FILES, "integrated-models", "integratedModels.json")):
         fail(f"{DATA_FILES} is not a data-files checkout; give one with --data-files")
     if args.latest_version:
-        print(latest_version(args.model) or "")
+        latest = latest_version(args.model)
+        if latest and args.maps_repo and maps_version(args.maps_repo) != latest:
+            latest = None
+        print(latest or "")
         return
     if not args.version:
         ap.error("--version is required")
@@ -490,13 +458,11 @@ def main():
         log(f"6. Timeline: {len(timeline)} releases, last {wanted}")
 
     # 7. maps
-    maps_dir = os.path.join(work, f"{args.model}-{version}-maps")  # kept apart: step 8 empties its own folder
-    maps_summary = os.path.join(maps_dir, "maps_summary.md")
     map_problems = []
     if args.skip_maps:
         log("7. Maps: skipped")
     else:
-        map_problems = update_maps(args, model_dir, target_yaml, old_yaml, maps_dir, maps_summary)
+        map_problems = copy_maps(args, model_dir, version)
 
     # 8. generate and check
     log("8. Generating and checking the new version")
@@ -515,7 +481,7 @@ def main():
         "data-files).")
     if map_problems:
         log("\nThe maps in svg/" + args.model + " are not up to date: " + "; ".join(map_problems)
-            + ".\nSee the map summary and fix the cause, or edit the maps by hand.")
+            + ".")
     sys.exit(1 if status else (2 if map_problems else 0))
 
 

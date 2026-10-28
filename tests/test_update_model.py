@@ -1,6 +1,5 @@
 """The parts of the model update that decide whether an update PR is correct."""
 import os
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -66,33 +65,69 @@ class Baseline(unittest.TestCase):
         self.assertNotEqual(um.baseline_dir("w", "M", "1.1.0", "1.1.0"), os.path.join("w", "M-1.1.0"))
 
 
-class MapFailure(unittest.TestCase):
-    def update_maps(self, completed):
-        with tempfile.TemporaryDirectory() as d:
-            model_dir = os.path.join(d, "data-files", "integrated-models", "M")
-            svg_dir = os.path.join(d, "data-files", "svg", "M")
-            os.makedirs(model_dir)
-            os.makedirs(svg_dir)
-            with open(os.path.join(svg_dir, "a.svg"), "w") as fh:
-                fh.write("<svg/>")
-            args = mock.Mock(model="M", gene_label=None, kegg_dir=None)
-            summary = os.path.join(d, "work", "maps_summary.md")
-            with mock.patch.object(um, "DATA_FILES", os.path.join(d, "data-files")), \
-                    mock.patch.object(um.subprocess, "run", return_value=completed):
-                problems = um.update_maps(args, model_dir, "new.yml", "old.yml", os.path.join(d, "work"), summary)
-            return problems, open(summary).read()
+class CopyMaps(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        d = self.dir.name
+        self.repo = os.path.join(d, "maps-repo")
+        self.model_dir = os.path.join(d, "data-files", "integrated-models", "M")
+        self.svg_dir = os.path.join(d, "data-files", "svg", "M")
+        for kind in ("subsystem", "compartment"):
+            os.makedirs(os.path.join(self.repo, kind, "svg"))
+        os.makedirs(self.model_dir)
+        os.makedirs(self.svg_dir)
+        self.write(os.path.join(self.repo, "README.md"), "The maps match **M 2.0.0**.\n")
+        self.write(os.path.join(self.repo, "subsystem", "svg", "a.svg"), "<svg>new</svg>")
+        self.write(os.path.join(self.repo, "subsystemSVG.tsv"), "@s\tm\tf\nA\tA\ta.svg\n")
+        self.write(os.path.join(self.repo, "compartmentSVG.tsv"), "@c\tm\tf\n")
+        self.write(os.path.join(self.svg_dir, "a.svg"), "<svg>old</svg>")
+        self.write(os.path.join(self.svg_dir, "gone.svg"), "<svg/>")
+        self.write(os.path.join(self.svg_dir, "custom.svg"), "<svg/>")
+        self.write(os.path.join(self.model_dir, "customSVG.tsv"), "@m\tf\nCustom\tcustom.svg\n")
+        self.args = mock.Mock(model="M", maps_repo=self.repo)
+        patch = mock.patch.object(um, "DATA_FILES", os.path.join(d, "data-files"))
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.addCleanup(self.dir.cleanup)
 
-    def test_a_failing_map_editor_is_reported(self):
-        failed = subprocess.CompletedProcess([], 1, stdout="", stderr="Traceback: boom")
-        problems, summary = self.update_maps(failed)
+    @staticmethod
+    def write(path, text):
+        with open(path, "w") as fh:
+            fh.write(text)
+
+    def test_maps_and_lists_are_copied_and_unlisted_maps_removed_except_custom_ones(self):
+        self.assertEqual(um.copy_maps(self.args, self.model_dir, "2.0.0"), [])
+        self.assertEqual(sorted(os.listdir(self.svg_dir)), ["a.svg", "custom.svg"])
+        self.assertEqual(open(os.path.join(self.svg_dir, "a.svg")).read(), "<svg>new</svg>")
+        self.assertIn("A\tA\ta.svg", open(os.path.join(self.model_dir, "subsystemSVG.tsv")).read())
+
+    def test_nothing_is_copied_when_the_maps_repository_holds_another_release(self):
+        problems = um.copy_maps(self.args, self.model_dir, "2.1.0")
         self.assertEqual(len(problems), 1)
-        self.assertTrue(summary.startswith("**Maps NOT updated"))
-        self.assertIn("boom", summary)
+        self.assertEqual(open(os.path.join(self.svg_dir, "a.svg")).read(), "<svg>old</svg>")
+        self.assertTrue(os.path.exists(os.path.join(self.svg_dir, "gone.svg")))
+
+    def test_a_list_row_without_a_map_stops_the_copy(self):
+        self.write(os.path.join(self.repo, "subsystemSVG.tsv"), "@s\tm\tf\nA\tA\ta.svg\nB\tB\tb.svg\n")
+        self.assertEqual(len(um.copy_maps(self.args, self.model_dir, "2.0.0")), 1)
+        self.assertTrue(os.path.exists(os.path.join(self.svg_dir, "gone.svg")))
+
+    def test_no_maps_repository_is_a_problem_unless_the_maps_are_skipped(self):
+        self.args.maps_repo = None
+        self.assertEqual(len(um.copy_maps(self.args, self.model_dir, "2.0.0")), 1)
+
+    def test_a_file_name_in_both_kinds_is_a_problem(self):
+        self.write(os.path.join(self.repo, "compartment", "svg", "a.svg"), "<svg/>")
+        self.assertEqual(len(um.copy_maps(self.args, self.model_dir, "2.0.0")), 1)
+        self.assertEqual(open(os.path.join(self.svg_dir, "a.svg")).read(), "<svg>old</svg>")
+
+    def test_the_maps_version_is_read_from_the_readme(self):
+        self.assertEqual(um.maps_version(self.repo), "2.0.0")
 
 
 class PullRequestText(unittest.TestCase):
-    def test_status_2_covers_failed_maps(self):
-        self.assertIn("maps could not be updated", update_pr_body.STATUS[2])
+    def test_status_2_covers_maps_that_are_not_up_to_date(self):
+        self.assertIn("does not hold the maps of this release", update_pr_body.STATUS[2])
 
 
 if __name__ == "__main__":

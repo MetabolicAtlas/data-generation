@@ -7,5 +7,5 @@ lxml
 pandas
 numpy
 matplotlib
-# maps/publish_maps.py (the SBGN-ML and Escher exports) also needs:
+# maps/update_maps.py (the SBGN-ML and Escher exports) also needs:
 # jsonschema
