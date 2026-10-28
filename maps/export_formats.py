@@ -2,17 +2,15 @@
 """Write Metabolic Atlas SVG maps in other formats, for the Human-maps and Yeast-maps repositories.
 
 For each map: SBGN-ML (process description: metabolites as simple chemicals, reactions as processes,
-genes as macromolecules catalysing them, compartments), SBML Level 3 with the layout and groups packages
-(the reactions with their stoichiometry and gene modifiers from the model, every drawn node and edge in
-the layout, one group per subsystem) and an Escher map (JSON). Positions and edge paths are those of the
-SVG.
+genes as macromolecules catalysing them, compartments) and an Escher map (JSON). Positions and edge paths
+are those of the SVG.
 
 Usage: export_formats.py <model.yml> <model dir with reactions/metabolites/genes.tsv> <out dir>
        --maps a.svg ...
-Writes <out>/<format>/<map>.<ext> for format svg, sbgn, sbml and escher (.json). Needs python-libsbml and
-lxml. With the libsbgn schema at schema/SBGN.xsd next to this file, every SBGN file is
-validated against it; with Escher's map schema at schema/escher_1-0-0.json (and jsonschema), every Escher map
-too; every SBML file is checked with libsbml, and every Escher map with Escher's own consistency checks.
+Writes <out>/<format>/<map>.<ext> for format svg, sbgn and escher (.json). Needs lxml. With the libsbgn
+schema at schema/SBGN.xsd next to this file, every SBGN file is validated against it; with Escher's map
+schema at schema/escher_1-0-0.json (and jsonschema), every Escher map too, and every Escher map is checked
+with Escher's own consistency checks.
 """
 
 import argparse
@@ -23,7 +21,6 @@ import re
 import shutil
 import sys
 
-import libsbml
 from lxml import etree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -35,7 +32,7 @@ SBGN_PD = "http://identifiers.org/combine.specifications/sbgn.pd.level-1.version
 
 
 def sid(s):
-    """A valid SBML/SBGN identifier."""
+    """A valid SBGN identifier."""
     s = re.sub(r"[^A-Za-z0-9_]", "_", s)
     return s if re.match(r"[A-Za-z_]", s) else "_" + s
 
@@ -207,145 +204,6 @@ def arc(arcs, cls, aid, source, target, pts):
     for p in pts[1:-1]:
         etree.SubElement(a, "{%s}next" % SBGN, x=f"{p[0]:.1f}", y=f"{p[1]:.1f}")
     etree.SubElement(a, "{%s}end" % SBGN, x=f"{pts[-1][0]:.1f}", y=f"{pts[-1][1]:.1f}")
-
-
-# ----------------------------------------------------------------------------- SBML with layout
-
-def check(status, what):
-    if status not in (libsbml.LIBSBML_OPERATION_SUCCESS, None):
-        raise RuntimeError(f"libsbml: {what}: {libsbml.OperationReturnValue_toString(status)}")
-
-
-def bbox(obj, gid, box):
-    obj.setId(gid)
-    b = obj.getBoundingBox()
-    b.setX(box[0]); b.setY(box[1]); b.setWidth(box[2]); b.setHeight(box[3])  # noqa: E702
-
-
-def curve(srg, pts):
-    c = srg.getCurve()
-    for a, b in zip(pts, pts[1:]):
-        seg = c.createLineSegment()
-        seg.getStart().setX(a[0]); seg.getStart().setY(a[1])  # noqa: E702
-        seg.getEnd().setX(b[0]); seg.getEnd().setY(b[1])  # noqa: E702
-
-
-def write_sbml(d, path):
-    model = d.model
-    doc = libsbml.SBMLDocument(3, 1)
-    check(doc.enablePackage(libsbml.LayoutExtension.getXmlnsL3V1V1(), "layout", True), "layout")
-    check(doc.enablePackage(libsbml.GroupsExtension.getXmlnsL3V1V1(), "groups", True), "groups")
-    doc.setPackageRequired("layout", False)
-    doc.setPackageRequired("groups", False)
-    m = doc.createModel()
-    m.setId(sid(d.name))
-    m.setName(d.title)
-    mets = {x for r in d.rpos for x in model.rxns[r]["stoich"]}
-    comps = sorted({L.comp_of(x) for x in mets})
-    for c in comps:
-        comp = m.createCompartment()
-        comp.setId(sid(c)); comp.setName(L.COMPARTMENT.get(c, c)); comp.setConstant(True)  # noqa: E702
-        comp.setSpatialDimensions(3); comp.setSize(1)  # noqa: E702
-    for x in sorted(mets):
-        s = m.createSpecies()
-        s.setId(sid(x)); s.setName(model.name(x)); s.setCompartment(sid(L.comp_of(x)))  # noqa: E702
-        s.setHasOnlySubstanceUnits(False); s.setBoundaryCondition(False); s.setConstant(False)  # noqa: E702
-        s.setSBOTerm(247)
-    genes = sorted({g for r in d.rpos for g in model.rxns[r]["genes"]})
-    gene_comp = {}
-    for r in d.rpos:
-        for g in model.rxns[r]["genes"]:
-            gene_comp.setdefault(g, sid(L.comp_of(next(iter(model.rxns[r]["stoich"])))))
-    for g in genes:
-        s = m.createSpecies()
-        s.setId(sid("gene_" + g)); s.setName(model.symbol.get(g) or g); s.setCompartment(gene_comp[g])  # noqa: E702
-        s.setHasOnlySubstanceUnits(False); s.setBoundaryCondition(False); s.setConstant(False)  # noqa: E702
-        s.setSBOTerm(252)
-    groups = collections.defaultdict(list)
-    for rid in d.rpos:
-        r = model.rxns[rid]
-        rx = m.createReaction()
-        rx.setId(sid(rid)); rx.setName(mapedit.text(r.get("name")) or rid)  # noqa: E702
-        rx.setReversible((r.get("lower_bound") or 0) < 0); rx.setFast(False); rx.setSBOTerm(176)  # noqa: E702
-        for x, c in sorted(r["stoich"].items()):
-            ref = rx.createReactant() if c < 0 else rx.createProduct()
-            ref.setId(sid(f"{rid}_{x}")); ref.setSpecies(sid(x)); ref.setStoichiometry(abs(c)); ref.setConstant(True)  # noqa: E702
-        for g in sorted(r["genes"]):
-            mod = rx.createModifier()
-            mod.setId(sid(f"{rid}_gene_{g}")); mod.setSpecies(sid("gene_" + g)); mod.setSBOTerm(460)  # noqa: E702
-        subs = r.get("subsystem")
-        for s in (subs if isinstance(subs, list) else [subs] if subs else []):
-            groups[s].append(rid)
-    gplug = m.getPlugin("groups")
-    for i, (name, rids) in enumerate(sorted(groups.items())):
-        grp = gplug.createGroup()
-        grp.setId(f"group{i + 1}"); grp.setName(name); grp.setKind(libsbml.GROUP_KIND_PARTONOMY)  # noqa: E702
-        for r in rids:
-            grp.createMember().setIdRef(sid(r))
-    lay = m.getPlugin("layout").createLayout()
-    lay.setId("layout")
-    lay.setDimensions(libsbml.Dimensions(libsbml.LayoutPkgNamespaces(3, 1, 1), d.width, d.height))
-    code = {v: k for k, v in L.COMPARTMENT.items()}
-    for i, (name, b) in enumerate(d.boxes):
-        c = code.get(name) or code.get(L.ALIASES.get(name, ""), "")
-        if sid(c) in [sid(x) for x in comps]:
-            cg = lay.createCompartmentGlyph()
-            bbox(cg, f"cg{i + 1}", (b[0], b[1], b[2] - b[0], b[3] - b[1]))
-            cg.setCompartmentId(sid(c))
-    for i, x in enumerate(d.mets):
-        if x["met"] not in mets:
-            continue
-        sg = lay.createSpeciesGlyph()
-        bbox(sg, f"sg{i + 1}", x["box"])
-        sg.setSpeciesId(sid(x["met"]))
-        tg = lay.createTextGlyph()
-        bbox(tg, f"tg_sg{i + 1}", x["box"])
-        tg.setGraphicalObjectId(f"sg{i + 1}"); tg.setOriginOfTextId(sid(x["met"]))  # noqa: E702
-    gene_ids = set(genes)
-    for i, x in enumerate(d.genes):
-        if x["gene"] not in gene_ids:
-            continue
-        sg = lay.createSpeciesGlyph()
-        bbox(sg, f"gg{i + 1}", x["box"])
-        sg.setSpeciesId(sid("gene_" + x["gene"]))
-        tg = lay.createTextGlyph()
-        bbox(tg, f"tg_gg{i + 1}", x["box"])
-        tg.setGraphicalObjectId(f"gg{i + 1}"); tg.setText(x["label"])  # noqa: E702
-    for rid, rp in d.rpos.items():
-        st = model.rxns[rid]["stoich"]
-        rg = lay.createReactionGlyph()
-        bbox(rg, f"rg_{sid(rid)}", (rp[0] - 15, rp[1] - 15, 30, 30))
-        rg.setReactionId(sid(rid))
-        for k, (i, pts) in enumerate(d.edges[rid]):
-            met = d.mets[i]["met"]
-            if met not in st:
-                continue
-            srg = rg.createSpeciesReferenceGlyph()
-            srg.setId(f"srg_{sid(rid)}_{k}")
-            srg.setSpeciesGlyphId(f"sg{i + 1}")
-            srg.setSpeciesReferenceId(sid(f"{rid}_{met}"))
-            if st[met] < 0:
-                srg.setRole(libsbml.SPECIES_ROLE_SUBSTRATE if d.mets[i]["main"] else libsbml.SPECIES_ROLE_SIDESUBSTRATE)
-                curve(srg, pts)
-            else:
-                srg.setRole(libsbml.SPECIES_ROLE_PRODUCT if d.mets[i]["main"] else libsbml.SPECIES_ROLE_SIDEPRODUCT)
-                curve(srg, list(reversed(pts)))
-        for k, (i, pts) in enumerate(d.gene_edges[rid]):
-            g = d.genes[i]["gene"]
-            if g not in model.rxns[rid]["genes"]:
-                continue
-            srg = rg.createSpeciesReferenceGlyph()
-            srg.setId(f"mrg_{sid(rid)}_{k}")
-            srg.setSpeciesGlyphId(f"gg{i + 1}")
-            srg.setSpeciesReferenceId(sid(f"{rid}_gene_{g}"))
-            srg.setRole(libsbml.SPECIES_ROLE_MODIFIER)
-            curve(srg, pts)
-    libsbml.writeSBMLToFile(doc, path)
-    back = libsbml.readSBMLFromFile(path)  # validate what was written
-    back.checkConsistency()
-    errors = [back.getError(i) for i in range(back.getNumErrors())
-              if back.getError(i).getSeverity() >= libsbml.LIBSBML_SEV_ERROR]
-    return [f"{e.getErrorId()}: {e.getShortMessage()}" for e in errors]
 
 
 SCHEMA = None
@@ -691,7 +549,7 @@ def main():
     ap.add_argument("--model-name", help="model name for the Escher maps (default: the YAML file name)")
     a = ap.parse_args()
     model = mapedit.Model(a.model_yml, a.model_dir, [])
-    for fmt in ("svg", "sbgn", "sbml", "escher"):
+    for fmt in ("svg", "sbgn", "escher"):
         os.makedirs(os.path.join(a.out, fmt), exist_ok=True)
     model_name = f"{a.model_name or os.path.basename(a.model_yml).rsplit('.', 1)[0]} {model.version}"
     problems = 0
@@ -700,14 +558,13 @@ def main():
         shutil.copyfile(p, os.path.join(a.out, "svg", d.name + ".svg"))
         write_sbgn(d, os.path.join(a.out, "sbgn", d.name + ".sbgn"))
         errors = validate_sbgn(os.path.join(a.out, "sbgn", d.name + ".sbgn"))
-        errors += write_sbml(d, os.path.join(a.out, "sbml", d.name + ".sbml"))
         write_escher(d, os.path.join(a.out, "escher", d.name + ".json"), model_name)
         errors += validate_escher(os.path.join(a.out, "escher", d.name + ".json"))
         problems += len(errors)
         edges = sum(len(v) for v in d.edges.values())
         print(f"{d.name}: {len(d.rpos)} reactions, {len(d.mets)} metabolite nodes, {len(d.genes)} gene nodes, "
               f"{edges} edges" + (f"; errors: {errors[:3]}" if errors else ""), flush=True)
-    print("SBGN schema, SBML consistency and Escher errors:", problems)
+    print("SBGN schema and Escher errors:", problems)
 
 
 if __name__ == "__main__":

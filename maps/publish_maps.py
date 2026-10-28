@@ -2,7 +2,7 @@
 """Write a model's maps into a checkout of its maps repository (SysBioChalmers/Human-maps, Yeast-maps).
 
 The subsystem and compartment maps listed in integrated-models/<Model>/subsystemSVG.tsv and
-compartmentSVG.tsv are written as SVG, SBGN-ML, SBML and Escher (JSON) (export_formats.py) into
+compartmentSVG.tsv are written as SVG, SBGN-ML and Escher (JSON) (export_formats.py) into
 <repo>/subsystem/<format>/ and <repo>/compartment/<format>/; maps that are no longer listed, and folders of
 other formats, are removed.
 The README's line "The maps match **<Model> <version>**." gets the version in integratedModels.json.
@@ -23,7 +23,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FORMATS = ("svg", "sbgn", "sbml", "escher")
+FORMATS = ("svg", "sbgn", "escher")
 
 
 def listed_maps(table):
@@ -50,13 +50,6 @@ def main():
     version = next(e["version"] for e in index if e["short_name"] == a.model)
     yaml_file = [f for f in os.listdir(model_dir) if f.endswith(".yml")][0]
     work = tempfile.mkdtemp(prefix="maps-")
-    tables = model_dir
-    reactions = os.path.join(model_dir, "reactions.tsv")
-    lines = open(reactions).read().splitlines() if os.path.exists(reactions) else []
-    if len(lines) < 2 or lines[0].split("\t")[0].strip('"') == "id":  # no TSV files, or yeast-GEM's: written from the YAML
-        tables = os.path.join(work, "model-tables")
-        subprocess.run([sys.executable, os.path.join(HERE, "yaml_to_tsv.py"), os.path.join(model_dir, yaml_file), tables,
-                        model_dir], check=True, stdout=subprocess.DEVNULL)
     counts, removed = {}, {}
     for kind in ("subsystem", "compartment"):
         maps = listed_maps(os.path.join(model_dir, f"{kind}SVG.tsv"))
@@ -66,9 +59,10 @@ def main():
         out = os.path.join(work, kind)
         if maps:
             result = subprocess.run([sys.executable, os.path.join(HERE, "export_formats.py"),
-                                     os.path.join(model_dir, yaml_file), tables, out, "--model-name", a.model,
+                                     os.path.join(model_dir, yaml_file), model_dir, out, "--model-name", a.model,
                                      "--maps", *[os.path.join(svg_dir, m) for m in maps]],
-                                    capture_output=True, text=True)
+                                    capture_output=True, text=True,
+                                    env={**os.environ, "PYTHONHASHSEED": "0"})  # the same files on every run
             print(result.stdout[-2000:], result.stderr[-2000:], sep="\n")
             last = (result.stdout.strip().splitlines() or [""])[-1]
             if result.returncode or not last.endswith("errors: 0"):
@@ -94,7 +88,7 @@ def main():
         open(readme, "w", encoding="utf-8").write(text)
     shutil.rmtree(work)
     lines = [f"Maps of **{a.model} {version}**, written from MetabolicAtlas/data-files (`svg/{a.model}`) by "
-             "`maps/publish_maps.py` of MetabolicAtlas/data-generation, as SVG, SBGN-ML 0.3, SBML Level 3 with layout and groups, and Escher (JSON).", "",
+             "`maps/publish_maps.py` of MetabolicAtlas/data-generation, as SVG, SBGN-ML 0.3 and Escher (JSON).", "",
              f"- {counts['subsystem']} subsystem maps and {counts['compartment']} compartment maps"]
     for kind in ("subsystem", "compartment"):
         if removed[kind]:

@@ -83,14 +83,34 @@ def load_model(path):
         rxns[r["id"]] = r
     meta = td(top.get("metaData") or {})
     load_model.compartments = {k: text(v) for k, v in td(top.get("compartments") or {}).items()}
+    load_model.gene_names = {g["id"]: text(g.get("name")) for g in map(td, top.get("genes") or [])}
     return mets, rxns, text(meta.get("version"))
 
 
-def read_tsv(path):
+# The model's annotation tables, genes.tsv, metabolites.tsv and reactions.tsv, come in two styles. Human-GEM's
+# first column is genes, mets or rxns and its cross-reference columns are named like rxnKEGGID; yeast-GEM's is id
+# and its columns are named after the annotation key (kegg.reaction). The map editor reads both by column name,
+# with the first column as the key, and takes cross-references from the tables only.
+RXN_KEGG = ("rxnKEGGID", "kegg.reaction")
+MET_KEGG = ("metKEGGID", "kegg.compound")
+GENE_SYMBOL = ("geneSymbols",)
+
+
+def read_table(path):
+    """{id: row} of an annotation table, the id being the first column; {} if the file is missing or empty."""
+    if not os.path.exists(path):
+        return {}
     with open(path, newline="") as fh:
         rows = list(csv.reader(fh, delimiter="\t"))
+    if not rows:
+        return {}
     header = [h.strip('"') for h in rows[0]]
-    return [dict(zip(header, [v.strip('"') for v in r])) for r in rows[1:] if r]
+    return {r[0].strip('"'): dict(zip(header, [v.strip('"') for v in r])) for r in rows[1:] if r}
+
+
+def column(table, names):
+    """{id: value} of the first of the columns `names` that has a value in a row."""
+    return {i: next((row[n] for n in names if row.get(n)), "") for i, row in table.items()}
 
 
 class Model:
@@ -100,19 +120,22 @@ class Model:
         for k, v in load_model.compartments.items():  # the model's names count; Human-GEM's are the defaults
             layout.COMPARTMENT[k] = v[:1].upper() + v[1:]
         MET_COMP.update({m: x["compartment"] for m, x in self.mets.items() if x.get("compartment")})
+        gene_names = load_model.gene_names  # before the earlier models are loaded
         self.old_mets, self.old_rxns, self.old_versions = {}, {}, []
         for p in old_ymls:
             om, orx, _ = load_model(p)
             self.old_mets.update(om)
             self.old_rxns.update(orx)
             self.old_versions.append(orx)
-        self.symbol = {g["genes"]: g.get("geneSymbols", "") for g in read_tsv(os.path.join(model_dir, "genes.tsv"))}
-        self.rxn_kegg = {r["rxns"]: r.get("rxnKEGGID", "") for r in read_tsv(os.path.join(model_dir, "reactions.tsv"))}
-        self.met_kegg = {m["mets"]: m.get("metKEGGID", "") for m in read_tsv(os.path.join(model_dir, "metabolites.tsv"))}
-        # legacy metabolite ids -> current ids
+        # gene symbols: the model's gene names, replaced by those of a Human-GEM style genes.tsv
+        self.symbol = dict(gene_names)
+        self.symbol.update({g: s for g, s in column(read_table(os.path.join(model_dir, "genes.tsv")), GENE_SYMBOL).items() if s})
+        self.rxn_kegg = column(read_table(os.path.join(model_dir, "reactions.tsv")), RXN_KEGG)
+        metabolites = read_table(os.path.join(model_dir, "metabolites.tsv"))
+        self.met_kegg = column(metabolites, MET_KEGG)
+        # legacy metabolite ids -> current ids; only Human-GEM's table has these columns
         self.legacy = {}
-        for row in read_tsv(os.path.join(model_dir, "metabolites.tsv")):
-            mid = row["mets"]
+        for mid, row in metabolites.items():
             comp = mid[-1]
             old_comp = {v: k for k, v in SUFFIX.items()}.get(comp, comp)
             for col in ("metHMR2ID", "metRetired"):

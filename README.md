@@ -40,7 +40,7 @@ The tools in `update/` and `maps/` update a model in a [data-files](https://gith
     $ python update/fetch_release_data.py -s                              # which models can be updated
     $ python update/update_model.py --model Human-GEM --version 2.1.1     # update and check the files
 
-- `update/update_model.py` downloads the release files into data-files, prepares them for the generator, updates `integratedModels.json` and the model's `gemRepository.json`, fits the SVG maps to the new version, generates the data and runs `check/check_generated_data.py`. It stops with an explanation when the model files need a manual fix; `--keep-files` reruns it on the fixed files.
+- `update/update_model.py` downloads the release files into data-files, prepares them for the generator, updates `integratedModels.json` and the model's `gemRepository.json`, fits the SVG maps to the new version, generates the data and runs `check/check_generated_data.py`. It stops with an explanation when the model files need a manual fix; `--keep-files` reruns it on the fixed files. Its exit status is 0 when every hard check passed, 1 when data-generation or a check failed, and 2 when the model files need a manual fix or the map editor failed (the maps are then not up to date).
 - `update/fetch_release_data.py` writes each integrated model's `gemRepository.json` (its releases), or with `-s` lists the models with a newer release.
 - `update/update_pr_body.py` writes the pull request description for the update workflow.
 
@@ -50,8 +50,8 @@ The tools in `update/` and `maps/` update a model in a [data-files](https://gith
 
 - `mapedit.py` fits the maps to a new model version, keeping their drawing; the rules are listed in [maps/RULES.md](maps/RULES.md). `update/update_model.py` runs it; run again on its own maps with the same model, it changes nothing.
 - `transport_map.py` writes the transport maps (one per membrane) whole from the model, with their rows in `subsystemSVG.tsv`.
-- `newmap.py` makes a blank map for a subsystem or compartment without one; `yaml_to_tsv.py` writes the tables the editor reads for models without Human-GEM style TSV files (Yeast-GEM); `kegg_fetch.py` caches KEGG pathway layouts that `mapedit.py --kegg-dir` follows for added reactions.
-- `publish_maps.py` writes a model's maps as SVG, SBGN-ML, SBML (with layout and groups), Escher (JSON) into a checkout of SysBioChalmers/Human-maps or Yeast-maps (`export_formats.py`). With the libsbgn schema in `maps/schema/SBGN.xsd` and Escher's in `maps/schema/escher_1-0-0.json`, every file is validated.
+- `newmap.py` makes a blank map for a subsystem or compartment without one; `kegg_fetch.py` caches KEGG pathway layouts that `mapedit.py --kegg-dir` follows for added reactions.
+- `publish_maps.py` writes a model's maps as SVG, SBGN-ML and Escher (JSON) into a checkout of SysBioChalmers/Human-maps or Yeast-maps (`export_formats.py`). With the libsbgn schema in `maps/schema/SBGN.xsd` and Escher's in `maps/schema/escher_1-0-0.json`, every file is validated.
 
 ## Data overlay
 
