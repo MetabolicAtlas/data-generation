@@ -19,7 +19,7 @@ import re
 
 from lxml import etree
 
-from mapedit import CURRENCY, SVG, comp_of, is_rxn, segments, subpaths, to_d, translate
+from mapedit import CURRENCY, SVG, comp_of, is_rxn, reversible, segments, subpaths, to_d, translate
 
 COFACTORS = CURRENCY | {"thiamin-PP", "lipoamide", "dihydrolipoamide", "FAD", "FADH2", "ubiquinone", "ubiquinol",
                         "AMP", "PPi", "NH4+", "glutathione", "GSSG", "SAM", "SAH", "UDP-glucuronate",
@@ -462,7 +462,7 @@ class Drawer:
         """Edges, arrowheads and genes of reaction rid at rpos.
 
         links: (node position, node kind 'main'|'side', role -1|+1, polyline from node to reaction or None)."""
-        rev = (self.model.rxns[rid].get("lower_bound") or 0) < 0
+        rev = reversible(self.model.rxns[rid])
         fe, feh = [], []
         for npos, kind, role, line in links:
             pts = list(line) if line else [npos, rpos]
@@ -621,7 +621,7 @@ def path_search(model, s, t, drawn, scope, max_steps=4, max_cost=4.0):
             st = r["stoich"]
             mains = [m for m in st if model.name(m) not in COFACTORS]
             subs, prods = [m for m in mains if st[m] < 0], [m for m in mains if st[m] > 0]
-            rev = (r.get("lower_bound") or 0) < 0
+            rev = reversible(r)
             for a in subs:
                 for b in prods:
                     adj[a].append((rid, b))
@@ -1361,7 +1361,7 @@ def respace(dr, c, r, items, ring_rids, ring_mets):
         a = delta[id(g)]
         nbrs = [n for n in ring_mets.values() if rid in mp.classes(n)]
         fe, feh = rotate_reaction_attachments(rid, a, [old_pos[id(n)] for n in nbrs])
-        rev = (model.rxns.get(rid, {}).get("lower_bound") or 0) < 0
+        rev = reversible(model.rxns.get(rid, {}))
         st = model.rxns.get(rid, {}).get("stoich", {})
         rpos = new_pos[id(g)]
         for n in nbrs:
@@ -1469,7 +1469,7 @@ def add_cofactor_dots(dr, rid, g, mets):
     rpos = translate(g)
     dots = [n for n in mp.nodes("met") if rid in mp.classes(n) and n.find(SVG + "circle") is not None]
     fe, feh = [], []
-    rev = (model.rxns[rid].get("lower_bound") or 0) < 0
+    rev = reversible(model.rxns[rid])
     for m in mets:
         same = [translate(n) for n in dots if st.get(mp.classes(n)[1], 0) * st[m] > 0 and translate(n)]
         target = (sum(p[0] for p in same) / len(same), sum(p[1] for p in same) / len(same)) if same else None
@@ -1551,7 +1551,7 @@ def complete_reactions(dr, reach=300):
             dr.link(n, rid)
             pts = [boundary(npos, rpos, "main"), boundary(rpos, npos, "rea")]
             fe.append(pts)
-            rev = (model.rxns[rid].get("lower_bound") or 0) < 0
+            rev = reversible(model.rxns[rid])
             if st[m] > 0 or rev:
                 feh.append(arrow(pts[0], pts[1]))
             dr.band_add.append((rid, [npos, rpos]))

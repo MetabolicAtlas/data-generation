@@ -14,6 +14,7 @@ the same, over longer lines (BRIDGE_REACH, crossing at most BRIDGE_CROSSINGS edg
 import collections
 
 import layout as L
+from mapedit import reversible
 
 
 def components(dr):
@@ -176,7 +177,7 @@ def one_pass(dr, reach, hub):
         for r, pts in paths.items():
             st = model.rxns[r]["stoich"]
             role = 1 if st.get(m, 0) > 0 else -1
-            rev = (model.rxns[r].get("lower_bound") or 0) < 0
+            rev = reversible(model.rxns[r])
             # the edge pieces ending at the emptied copy go
             for layer in ("fes", "fehs"):
                 for p in mp.edges(layer, r):

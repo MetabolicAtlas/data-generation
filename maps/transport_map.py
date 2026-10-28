@@ -296,7 +296,7 @@ def draw_row(dr, row, y0, membrane, out_dir, context):
             L.append(mp.layer["nodes"], dot)
             links.append((p, "side", 1 if st[m] > 0 else -1))
             x += sign * (w / 2 + 24)
-    rev = (model.rxns[rid].get("lower_bound") or 0) < 0
+    rev = me.reversible(model.rxns[rid])
     fe, feh = [], []
     for npos, kind, role in links:
         pts = [L.boundary(npos, rpos, kind), L.boundary(rpos, npos, "rea")]

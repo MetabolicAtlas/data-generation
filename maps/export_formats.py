@@ -2,8 +2,8 @@
 """Write Metabolic Atlas SVG maps in other formats, for the Human-maps and Yeast-maps repositories.
 
 For each map: SBGN-ML (process description: metabolites as simple chemicals, reactions as processes,
-genes as macromolecules catalysing them, compartments) and an Escher map (JSON). Positions and edge paths
-are those of the SVG.
+genes as macromolecules catalysing them, compartments; a reversible reaction has production arcs on both
+sides) and an Escher map (JSON). Positions and edge paths are those of the SVG.
 
 Usage: export_formats.py <model.yml> <model dir with reactions/metabolites/genes.tsv> <out dir>
        --maps a.svg ...
@@ -18,7 +18,6 @@ import collections
 import math
 import os
 import re
-import shutil
 import sys
 
 from lxml import etree
@@ -186,7 +185,9 @@ def write_sbgn(d, path):
         etree.SubElement(g, "{%s}port" % SBGN, id=pid + ".2", x=f"{p_out[0]:.1f}", y=f"{p_out[1]:.1f}")
         for k, (i, pts) in enumerate(d.edges[rid]):
             role = st.get(d.mets[i]["met"], 0)
-            if role < 0:
+            if role < 0 and mapedit.reversible(d.model.rxns[rid]):  # production arcs on both sides
+                arc(arcs, "production", f"{pid}_c{k}", pid + ".1", f"met{i + 1}", list(reversed(pts[:-1] + [p_in])))
+            elif role < 0:
                 arc(arcs, "consumption", f"{pid}_c{k}", f"met{i + 1}", pid + ".1", pts[:-1] + [p_in])
             elif role > 0:
                 line = list(reversed(pts))
@@ -392,7 +393,7 @@ def write_escher(d, path, model_name):
         genes = [{"bigg_id": g, "name": model.symbol.get(g) or g} for g in sorted(r["genes"])]
         reactions[str(next(ids))] = {
             "name": mapedit.text(r.get("name")) or rid, "bigg_id": rid,
-            "reversibility": (r.get("lower_bound") or 0) < 0,
+            "reversibility": mapedit.reversible(r),
             "label_x": round(rp[0], 1), "label_y": round(rp[1], 1),
             "gene_reaction_rule": rule, "genes": genes,
             "metabolites": [{"bigg_id": m, "coefficient": c} for m, c in st.items()],
@@ -498,8 +499,9 @@ def write_escher(d, path, model_name):
               "homepage": "https://escher.github.io", "schema": ESCHER_SCHEMA}
     body = {"reactions": reactions, "nodes": nodes, "text_labels": labels,
             "canvas": {"x": 0, "y": 0, "width": d.width, "height": d.height}}
-    with open(path, "w") as fh:
-        json.dump([header, body], fh, separators=(",", ":"))
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump([header, body], fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
 
 
 ESCHER = None
@@ -555,7 +557,10 @@ def main():
     problems = 0
     for p in a.maps:
         d = MapData(p, model)
-        shutil.copyfile(p, os.path.join(a.out, "svg", d.name + ".svg"))
+        with open(p, encoding="utf-8", newline="") as fh:
+            svg = fh.read()
+        with open(os.path.join(a.out, "svg", d.name + ".svg"), "w", encoding="utf-8", newline="") as fh:
+            fh.write(re.sub(r' data-pluginversion="[^"]*"', "", svg, count=1))  # the Omix plugin version
         write_sbgn(d, os.path.join(a.out, "sbgn", d.name + ".sbgn"))
         errors = validate_sbgn(os.path.join(a.out, "sbgn", d.name + ".sbgn"))
         write_escher(d, os.path.join(a.out, "escher", d.name + ".json"), model_name)

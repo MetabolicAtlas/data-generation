@@ -87,6 +87,11 @@ def load_model(path):
     return mets, rxns, text(meta.get("version"))
 
 
+def reversible(r):
+    """Whether a reaction of load_model can carry flux in both directions: lower bound below 0 and upper bound above 0."""
+    return (r.get("lower_bound") or 0) < 0 < (r.get("upper_bound") or 0)
+
+
 # The model's annotation tables, genes.tsv, metabolites.tsv and reactions.tsv, come in two styles. Human-GEM's
 # first column is genes, mets or rxns and its cross-reference columns are named like rxnKEGGID; yeast-GEM's is id
 # and its columns are named after the annotation key (kegg.reaction). The map editor reads both by column name,
