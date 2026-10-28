@@ -1,0 +1,165 @@
+# Fits the maps of a maps repository (SysBioChalmers/Human-maps, Yeast-maps) to a newer release of its model and
+# opens a pull request there.
+#
+# A reusable workflow: the maps repository calls it (see the update-maps.yml of Human-maps) daily and by hand. It runs
+# maps/update_maps.py, which adapts the lists of maps to the subsystems and compartments of the release, fits the maps,
+# and writes them as SVG, SBGN-ML and Escher (JSON). The result is pushed to the branch auto/maps-<model>-<version>
+# of the calling repository, and a pull request is opened, as a draft when some maps could not be fitted. The
+# workflow uses the token of the calling workflow and no secret; the token needs the permissions contents: write and
+# pull-requests: write, and the repository needs the setting "Allow GitHub Actions to create and approve pull
+# requests".
+#
+# Nothing is done when the maps match the latest release, or when a pull request for the same release exists already
+# (open, merged or closed). A branch without a pull request, left by a run that failed before the pull request was
+# opened, is replaced.
+
+name: Update maps
+
+on:
+  workflow_call:
+    inputs:
+      model:
+        description: "Model repository in SysBioChalmers: Human-GEM or Yeast-GEM"
+        required: true
+        type: string
+      version:
+        description: "Release to fit the maps to (empty: the latest release, if newer than the maps)"
+        required: false
+        type: string
+        default: ""
+      data_generation_ref:
+        description: "data-generation branch or tag to use"
+        required: false
+        type: string
+        default: main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    concurrency:
+      group: update-maps-${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      MODEL: ${{ inputs.model }}
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the maps repository
+        uses: actions/checkout@v4
+        with:
+          path: maps-repo
+          fetch-depth: 0
+
+      - name: Check out data-generation (the map tools)
+        uses: actions/checkout@v4
+        with:
+          repository: MetabolicAtlas/data-generation
+          ref: ${{ inputs.data_generation_ref }}
+          path: data-generation
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the packages and the libsbgn schema
+        run: |
+          pip install pyyaml lxml PyGithub packaging
+          mkdir -p data-generation/maps/schema
+          curl -sfL -o data-generation/maps/schema/SBGN.xsd \
+            https://raw.githubusercontent.com/sbgn/libsbgn/master/resources/SBGN.xsd
+
+      - name: Decide the version and branch
+        id: target
+        working-directory: maps-repo
+        run: |
+          version="$REQUESTED_VERSION"
+          if [ -z "$version" ]; then
+            version=$(python ../data-generation/maps/update_maps.py --model "$MODEL" --repo . --latest-version)
+          fi
+          if [ -z "$version" ]; then
+            echo "The maps match the latest release of $MODEL."
+            exit 0
+          fi
+          slug=$(echo "$MODEL" | tr '[:upper:]' '[:lower:]')
+          branch="auto/maps-$slug-$version"
+          if [ -z "$REQUESTED_VERSION" ] && \
+             [ -n "$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state all --json number --jq '.[0].number // empty')" ]; then
+            echo "A pull request for $branch exists already."
+            exit 0
+          fi
+          echo "Fitting the $MODEL maps to $version on $branch"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if [ -n "$REQUESTED_VERSION" ]; then
+            echo "force=--force" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fit the maps
+        id: update
+        if: steps.target.outputs.version != ''
+        working-directory: maps-repo
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+          FORCE: ${{ steps.target.outputs.force }}
+        run: |
+          set +e
+          python -u ../data-generation/maps/update_maps.py --model "$MODEL" --repo . --version "$VERSION" $FORCE \
+            --work-dir ../work --summary ../summary.md 2>&1 | tee ../update.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "Exit status: $status"
+
+      - name: Commit, push and open the pull request
+        if: steps.update.outputs.status == '0' || steps.update.outputs.status == '2'
+        working-directory: maps-repo
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+          STATUS: ${{ steps.update.outputs.status }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The maps did not change."
+            exit 0
+          fi
+          git commit -q -m "feat: fit the maps to $MODEL $VERSION" \
+            -m "Written by maps/update_maps.py of MetabolicAtlas/data-generation ($(git -C ../data-generation rev-parse --short HEAD))."
+          git push --force origin "$BRANCH"
+          draft=()
+          if [ "$STATUS" = "2" ]; then
+            draft=(--draft)
+          fi
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$number" ]; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base "$BASE" --head "$BRANCH" \
+              --title "feat: fit the maps to $MODEL $VERSION" --body-file ../summary.md "${draft[@]}"
+          else
+            gh pr edit "$number" --repo "$GITHUB_REPOSITORY" --body-file ../summary.md
+            if [ "$STATUS" = "0" ]; then
+              gh pr ready "$number" --repo "$GITHUB_REPOSITORY" || true
+            fi
+          fi
+
+      - name: Keep the reports
+        if: always() && steps.target.outputs.version != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-update-report
+          path: |
+            update.log
+            summary.md
+            work/edited/changes.tsv
+          if-no-files-found: ignore
+
+      - name: Fail when some maps could not be fitted
+        if: steps.update.outputs.status != '' && steps.update.outputs.status != '0'
+        run: |
+          echo "update_maps.py ended with status ${{ steps.update.outputs.status }}; see the pull request or the log."
+          exit 1

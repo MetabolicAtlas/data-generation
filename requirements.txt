@@ -1,0 +1,11 @@
+# Python tools: update/, maps/, overlay/ and check/
+-r check/requirements.txt
+PyYAML
+PyGithub
+packaging
+lxml
+pandas
+numpy
+matplotlib
+# maps/update_maps.py (the SBGN-ML and Escher exports) also needs:
+# jsonschema

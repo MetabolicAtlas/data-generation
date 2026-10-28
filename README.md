@@ -32,5 +32,31 @@ The folder `gemRepository` contains a timeline chart for integrated models that 
 
 `<RUN DIR>` is the directory the generator was run in. The model update workflow in data-files runs this check after generating the data.
 
+## Updating an integrated model
+
+The tools in `update/` and `maps/` update a model in a [data-files](https://github.com/MetabolicAtlas/data-files) checkout to a new release, after the maps of the model are fitted to it in the model's maps repository. The procedure, including the local deployment test, is described in [UPDATING_MODELS.md](https://github.com/MetabolicAtlas/data-files/blob/main/UPDATING_MODELS.md) in data-files, whose workflows run these tools from a checkout of this repository. The commands below expect data-files checked out next to this repository; `--data-files <PATH>` points elsewhere.
+
+    $ pip install -r requirements.txt
+    $ python update/fetch_release_data.py -s                              # which models can be updated
+    $ python update/update_model.py --model Human-GEM --version 2.1.1 --maps-repo ../Human-maps     # update and check the files
+
+- `update/update_model.py` downloads the release files into data-files, prepares them for the generator, updates `integratedModels.json` and the model's `gemRepository.json`, copies the maps and the lists of maps from the maps repository (`--maps-repo`) when its README says that its maps match the release, generates the data and runs `check/check_generated_data.py`. It stops with an explanation when the model files need a manual fix; `--keep-files` reruns it on the fixed files. Its exit status is 0 when every hard check passed, 1 when data-generation or a check failed, and 2 when the model files need a manual fix or the maps repository does not hold the maps of the release (the maps are then not up to date).
+- `update/fetch_release_data.py` writes each integrated model's `gemRepository.json` (its releases), or with `-s` lists the models with a newer release.
+- `update/update_pr_body.py` writes the pull request description for the update workflow.
+
+## Maps
+
+`maps/` fits the maps to a model release and exports them. The maps are made in the maps repositories ([Human-maps](https://github.com/SysBioChalmers/Human-maps), [Yeast-maps](https://github.com/SysBioChalmers/Yeast-maps)); data-files copies them:
+
+- `update_maps.py` updates a maps repository to a newer release of its model: `maplists.py` adapts the lists, `mapedit.py` fits the maps, `transport_map.py` writes the transport maps again and `export_formats.py` writes every map as SVG, SBGN-ML and Escher (JSON). It is run by the reusable workflow `.github/workflows/update-maps.yml`, which the workflow `update-maps.yml` of each maps repository calls daily and by hand; the workflow opens a pull request in the maps repository. With the libsbgn schema in `maps/schema/SBGN.xsd` (the workflow downloads it), every SBGN-ML file is validated; every Escher map is checked with Escher's own consistency checks.
+- `maplists.py` adapts `subsystemSVG.tsv` and `compartmentSVG.tsv` to the subsystems and compartments of the new release: a subsystem or compartment that is gone loses its row and its map, a new one gets a row and a blank map, and a probable rename is reported.
+- `mapedit.py` fits the maps to a new model version, keeping their drawing; the rules are listed in [maps/RULES.md](maps/RULES.md). Run again on its own maps with the same model, it changes nothing.
+- `transport_map.py` writes the transport maps (one per membrane) whole from the model, with their rows in `subsystemSVG.tsv`.
+- `newmap.py` makes a blank map for a subsystem or compartment without one; `kegg_fetch.py` caches KEGG pathway layouts that `mapedit.py --kegg-dir` follows for added reactions.
+
+## Data overlay
+
+`overlay/format_hpaRna.py` scales the Human Protein Atlas RNA data for the data overlay, as described in [DATA_OVERLAY.md](https://github.com/MetabolicAtlas/data-files/blob/main/DATA_OVERLAY.md) in data-files; `overlay/hpaRna-tissue-data-analysis.ipynb` shows the distribution that the scaling is based on.
+
 Please note that while the aforementioned commands can be run on their own, the
 output is meaningful only for the deployment pipeline of [Metabolic Atlas](https://github.com/MetabolicAtlas/MetabolicAtlas).

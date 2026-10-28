@@ -16,3 +16,11 @@ gemRepository/
 **/*.yml
 
 *.swp
+
+# the workflows and the test fixtures are kept
+!.github/workflows/*.yml
+!tests/fixtures/**
+
+# schemas that maps/export_formats.py validates against, downloaded where needed
+maps/schema/
+__pycache__/
