@@ -1,0 +1,35 @@
+name: Python tools
+
+on:
+  pull_request:
+    paths:
+      - "update/**"
+      - "maps/**"
+      - "check/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/tools.yml"
+  push:
+    branches: [main]
+    paths:
+      - "update/**"
+      - "maps/**"
+      - "check/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/tools.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install packages
+        run: pip install pyyaml lxml PyGithub packaging jsonschema pyflakes
+      - name: Check the scripts for errors
+        run: python -m pyflakes update maps check tests
+      - name: Test
+        run: python -m unittest discover -s tests -v
